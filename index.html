@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Game Demo - Dual Grid System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>Mining Game Demo</h1>
+            <div class="controls-info">
+                <span>Arrow Keys: Move</span>
+                <span>Space: Dig</span>
+            </div>
+        </header>
+        
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="debug-info">
+            <label>
+                <input type="checkbox" id="showGrid"> Show Grid
+            </label>
+            <label>
+                <input type="checkbox" id="showBaseGrid"> Show Base Grid Values
+            </label>
+            <span id="playerPos">Player: (0, 0)</span>
+        </div>
+    </div>
+
+    <!-- Load tilemap patterns data first -->
+    <script src="data/tilePatterns.js"></script>
+    
+    <!-- Load game modules -->
+    <script src="js/MapGenerator.js"></script>
+    <script src="js/TileRenderer.js"></script>
+    <script src="js/DualGridSystem.js"></script>
+    <script src="js/Player.js"></script>
+    <script src="js/InputHandler.js"></script>
+    
+    <!-- Main game initialization -->
+    <script src="js/main.js"></script>
+</body>
+</html>

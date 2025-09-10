@@ -1,0 +1,87 @@
+/* Mining Game Demo Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 900px;
+    width: 100%;
+}
+
+header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.controls-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    color: #666;
+    font-size: 14px;
+}
+
+.controls-info span {
+    background: #f0f0f0;
+    padding: 5px 15px;
+    border-radius: 20px;
+}
+
+#gameCanvas {
+    display: block;
+    margin: 0 auto;
+    border: 2px solid #ddd;
+    background: #f8f8f8;
+    cursor: crosshair;
+}
+
+.debug-info {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    align-items: center;
+    color: #666;
+    font-size: 14px;
+}
+
+.debug-info label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.debug-info input[type="checkbox"] {
+    cursor: pointer;
+}
+
+#playerPos {
+    background: #e8e8e8;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-family: monospace;
+}
