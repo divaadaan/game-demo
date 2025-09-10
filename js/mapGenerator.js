@@ -26,9 +26,9 @@ class MapGenerator {
         this.BODY_START = 10;
         
         // Terrain distribution for body
-        this.BODY_EMPTY_CHANCE = 0.2;
-        this.BODY_DIGGABLE_CHANCE = 0.6;
-        this.BODY_UNDIGGABLE_CHANCE = 0.2;
+        this.BODY_EMPTY_CHANCE = 0.04;
+        this.BODY_DIGGABLE_CHANCE = 0.9;
+        this.BODY_UNDIGGABLE_CHANCE = 0.06;
         
         // Entrance configuration
         this.ENTRANCE_WIDTH = 3;
