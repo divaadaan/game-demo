@@ -6,6 +6,9 @@ class TileRenderer {
         this.tilemapImage = null;
         this.tilemapLoaded = false;
         
+        // Control whether to use tilemap or fallback
+        this.USE_TILEMAP = false; // Set to true to attempt loading tilemap.png
+        
         // Rendering constants
         this.RENDER_TILE_SIZE = 32; // Size to render tiles on screen
         this.SOURCE_TILE_SIZE = TILE_SIZE; // From tilePatterns.js (100px)
@@ -19,6 +22,13 @@ class TileRenderer {
     }
     
     async loadTilemap(imagePath) {
+        // Check if we should use tilemap or go straight to fallback
+        if (!this.USE_TILEMAP) {
+            console.log('Tilemap loading disabled, using fallback colored tiles');
+            this.createFallbackTiles();
+            return Promise.resolve();
+        }
+        
         return new Promise((resolve, reject) => {
             this.tilemapImage = new Image();
             
@@ -29,7 +39,7 @@ class TileRenderer {
             };
             
             this.tilemapImage.onerror = () => {
-                console.error('Failed to load tilemap');
+                console.error('Failed to load tilemap, using fallback');
                 // Create fallback colored tiles if image fails to load
                 this.createFallbackTiles();
                 resolve(); // Still resolve so game can continue with fallback
@@ -73,42 +83,57 @@ class TileRenderer {
         const size = this.SOURCE_TILE_SIZE;
         const half = size / 2;
         
-        // Clear tile area
-        ctx.fillStyle = '#f0f0f0';
+        // Clear tile area with light background
+        ctx.fillStyle = '#f8f8f8';
         ctx.fillRect(x, y, size, size);
         
-        // Draw each quadrant based on pattern
+        // Draw each quadrant based on pattern with better colors
         const colors = {
-            0: '#ffffff', // Empty
-            1: '#808080', // Diggable
-            2: '#000000'  // Undiggable
+            0: '#e8f4f8', // Empty - light blue-white
+            1: '#8b7355', // Diggable - brown earth color
+            2: '#2c2c2c'  // Undiggable - dark gray stone
         };
         
-        // Top-left
-        ctx.fillStyle = colors[pattern.tl];
-        ctx.fillRect(x, y, half, half);
+        // Create gradient effect for more visual appeal
+        const drawQuadrant = (qx, qy, terrainType) => {
+            // Base color
+            ctx.fillStyle = colors[terrainType];
+            ctx.fillRect(qx, qy, half, half);
+            
+            // Add subtle texture/pattern
+            if (terrainType === 1) {
+                // Add dots for diggable terrain
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        ctx.beginPath();
+                        ctx.arc(qx + 8 + i * 16, qy + 8 + j * 16, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            } else if (terrainType === 2) {
+                // Add lines for undiggable terrain
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(qx, qy + i * 16);
+                    ctx.lineTo(qx + half, qy + i * 16);
+                    ctx.stroke();
+                }
+            }
+        };
         
-        // Top-right
-        ctx.fillStyle = colors[pattern.tr];
-        ctx.fillRect(x + half, y, half, half);
+        // Draw each quadrant
+        drawQuadrant(x, y, pattern.tl); // Top-left
+        drawQuadrant(x + half, y, pattern.tr); // Top-right
+        drawQuadrant(x, y + half, pattern.bl); // Bottom-left
+        drawQuadrant(x + half, y + half, pattern.br); // Bottom-right
         
-        // Bottom-left
-        ctx.fillStyle = colors[pattern.bl];
-        ctx.fillRect(x, y + half, half, half);
-        
-        // Bottom-right
-        ctx.fillStyle = colors[pattern.br];
-        ctx.fillRect(x + half, y + half, half, half);
-        
-        // Add grid lines for clarity
-        ctx.strokeStyle = '#ccc';
+        // Add subtle grid lines for clarity
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 0.5;
         ctx.strokeRect(x, y, size, size);
-        ctx.beginPath();
-        ctx.moveTo(x + half, y);
-        ctx.lineTo(x + half, y + size);
-        ctx.moveTo(x, y + half);
-        ctx.lineTo(x + size, y + half);
-        ctx.stroke();
     }
     
     renderTile(ctx, tileIndex, screenX, screenY) {
