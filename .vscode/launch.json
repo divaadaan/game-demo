@@ -1,16 +1,14 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
     {
       "name": "Launch Chrome and Debug",
       "type": "chrome",
       "request": "launch",
-      "url": "http://127.0.0.1:5500",   // Make sure this matches Live Server port
+      "url": "http://127.0.0.1:5500", 
       "webRoot": "${workspaceFolder}",
-      "sourceMaps": false
+      "sourceMaps": false,
+      "runtimeExecutable": "/usr/bin/google-chrome"
     }
   ]
 }
