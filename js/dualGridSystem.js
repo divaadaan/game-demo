@@ -1,4 +1,3 @@
-// Dual Grid System for Mining Game - Refactored with Better Encapsulation
 // Manages base grid (logic) and draw grid (visual) layers
 
 class DualGridSystem {
