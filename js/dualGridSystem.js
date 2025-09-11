@@ -156,7 +156,7 @@ class DualGridSystem {
                         this.tileRenderer.RENDER_TILE_SIZE, 
                         this.tileRenderer.RENDER_TILE_SIZE);
             
-            // Render updated tile with grid coordinates for home base detection
+            // Render updated tile with visual grid coordinates for home base detection
             this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY, tile.x, tile.y);
         }
     }

@@ -203,7 +203,7 @@ class TileRenderer {
                 const screenX = x * this.RENDER_TILE_SIZE + offsetX;
                 const screenY = y * this.RENDER_TILE_SIZE + offsetY;
                 
-                // Check if this is home base
+                // Check if this base grid position is in home base
                 const isHomeBase = this.mapGenerator && this.mapGenerator.isInHomeBase(x, y);
                 
                 // Draw colored overlay
