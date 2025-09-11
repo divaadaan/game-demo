@@ -1,4 +1,4 @@
-// Dual Grid System for Mining Game
+// Dual Grid System for Mining Game - Updated with Home Base Support
 // Manages base grid (logic) and draw grid (visual) layers
 
 class DualGridSystem {
@@ -104,7 +104,8 @@ class DualGridSystem {
                 const screenX = x * this.tileRenderer.RENDER_TILE_SIZE + offsetX;
                 const screenY = y * this.tileRenderer.RENDER_TILE_SIZE + offsetY;
                 
-                this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY);
+                // Pass grid coordinates for home base detection
+                this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY, x, y);
             }
         }
         
@@ -155,8 +156,8 @@ class DualGridSystem {
                         this.tileRenderer.RENDER_TILE_SIZE, 
                         this.tileRenderer.RENDER_TILE_SIZE);
             
-            // Render updated tile
-            this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY);
+            // Render updated tile with grid coordinates for home base detection
+            this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY, tile.x, tile.y);
         }
     }
 }

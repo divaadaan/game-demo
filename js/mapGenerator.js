@@ -1,5 +1,5 @@
-// Map Generator for Mining Game
-// Creates different types of maps for testing and gameplay
+// Map Generator for Mining Game - Refactored
+// Creates different types of maps with consistent structure
 
 class MapGenerator {
     constructor() {
@@ -19,19 +19,18 @@ class MapGenerator {
         // Current map type
         this.currentMapType = this.MAP_TYPES.BELL_JAR; // Default
         
-        // Zone boundaries for bell jar
+        // Consistent zone boundaries for all maps
         this.HOME_BASE_HEIGHT = 3;
-        this.NECK_START = 6;
-        this.NECK_END = 10;
-        this.BODY_START = 10;
-        
-        // Terrain distribution for body
-        this.BODY_EMPTY_CHANCE = 0.04;
-        this.BODY_DIGGABLE_CHANCE = 0.9;
-        this.BODY_UNDIGGABLE_CHANCE = 0.06;
+        this.SEPARATOR_ROW = 3; // Row between home base and entrance
+        this.NECK_START = 4;    // Start of neck area (after separator)
+        this.NECK_END = 8;      // End of neck area
+        this.BODY_START = 8;    // Start of main play area
         
         // Entrance configuration
         this.ENTRANCE_WIDTH = 3;
+        
+        // Home base color (light green) - this will be handled in the renderer
+        this.HOME_BASE_TERRAIN = TerrainType.EMPTY; // Still empty for gameplay
     }
     
     // Main method to generate map based on current type
@@ -41,21 +40,13 @@ class MapGenerator {
         
         console.log(`Generating map type: ${typeToGenerate}`);
         
-        switch(typeToGenerate) {
-            case this.MAP_TYPES.BELL_JAR:
-                return this.generateBellJarMap();
-            case this.MAP_TYPES.SIMPLE_BOX:
-                return this.generateSimpleBoxMap();
-            case this.MAP_TYPES.OPEN_FIELD:
-                return this.generateOpenFieldMap();
-            case this.MAP_TYPES.MAZE:
-                return this.generateMazeMap();
-            case this.MAP_TYPES.CAVERN:
-                return this.generateCavernMap();
-            default:
-                console.warn(`Unknown map type: ${typeToGenerate}, using bell jar`);
-                return this.generateBellJarMap();
-        }
+        // Create base structure that all maps share
+        const grid = this.createBaseMapStructure();
+        
+        // Generate the specific play area for this map type
+        this.generatePlayArea(grid, typeToGenerate);
+        
+        return grid;
     }
     
     // Set the current map type for future generations
@@ -68,6 +59,51 @@ class MapGenerator {
         }
     }
     
+    // Create the consistent base structure for all maps
+    createBaseMapStructure() {
+        const grid = this.createEmptyGrid();
+        
+        // 1. Generate undiggable borders
+        this.generateBorders(grid);
+        
+        // 2. Generate home base area (consistent for all maps)
+        this.generateHomeBase(grid);
+        
+        // 3. Generate separator with entrance (consistent for all maps)
+        this.generateSeparatorWithEntrance(grid);
+        
+        // 4. Generate neck area (consistent for all maps)
+        this.generateNeck(grid);
+        
+        return grid;
+    }
+    
+    // Generate the play area specific to each map type
+    generatePlayArea(grid, mapType) {
+        switch(mapType) {
+            case this.MAP_TYPES.BELL_JAR:
+                this.generateBellJarPlayArea(grid);
+                break;
+            case this.MAP_TYPES.SIMPLE_BOX:
+                this.generateSimpleBoxPlayArea(grid);
+                break;
+            case this.MAP_TYPES.OPEN_FIELD:
+                this.generateOpenFieldPlayArea(grid);
+                break;
+            case this.MAP_TYPES.MAZE:
+                this.generateMazePlayArea(grid);
+                break;
+            case this.MAP_TYPES.CAVERN:
+                this.generateCavernPlayArea(grid);
+                break;
+            default:
+                console.warn(`Unknown map type: ${mapType}, using bell jar`);
+                this.generateBellJarPlayArea(grid);
+        }
+    }
+    
+    // ========== BASE STRUCTURE METHODS (SHARED) ==========
+    
     // Initialize empty grid
     createEmptyGrid() {
         const grid = [];
@@ -77,20 +113,6 @@ class MapGenerator {
                 grid[y][x] = TerrainType.EMPTY;
             }
         }
-        return grid;
-    }
-    
-    // ========== BELL JAR MAP (Original) ==========
-    generateBellJarMap() {
-        const grid = this.createEmptyGrid();
-        
-        // Generate bell jar shape
-        this.generateBorders(grid);
-        this.generateHomeBase(grid);
-        this.generateNeck(grid);
-        this.generateBody(grid);
-        this.generateEntrance(grid);
-        
         return grid;
     }
     
@@ -109,32 +131,30 @@ class MapGenerator {
     }
     
     generateHomeBase(grid) {
-        // Home base area (top section) - mostly undiggable with entrance
+        // Home base area (top section) - light green area where player spawns
         for (let y = 1; y < this.HOME_BASE_HEIGHT; y++) {
             for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
-                grid[y][x] = TerrainType.EMPTY;
+                grid[y][x] = TerrainType.EMPTY; // Will be rendered as light green
             }
-        }
-        
-        // Separator between home base and rest of map
-        const separatorY = this.HOME_BASE_HEIGHT;
-        for (let x = 0; x < this.MAP_WIDTH; x++) {
-            grid[separatorY][x] = TerrainType.UNDIGGABLE;
         }
     }
     
-    generateEntrance(grid) {
+    generateSeparatorWithEntrance(grid) {
+        // Separator between home base and rest of map
+        const separatorY = this.SEPARATOR_ROW;
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+            grid[separatorY][x] = TerrainType.UNDIGGABLE;
+        }
+        
         // Create entrance in the middle of the separator
         const entranceX = Math.floor((this.MAP_WIDTH - this.ENTRANCE_WIDTH) / 2);
-        const separatorY = this.HOME_BASE_HEIGHT;
-        
         for (let i = 0; i < this.ENTRANCE_WIDTH; i++) {
             grid[separatorY][entranceX + i] = TerrainType.DIGGABLE;
         }
     }
     
     generateNeck(grid) {
-        // Neck area - narrow passage with undiggable edges
+        // Neck area - narrow passage with undiggable edges (same for all maps)
         const neckWidth = 8;
         const neckStart = Math.floor((this.MAP_WIDTH - neckWidth) / 2);
         
@@ -159,15 +179,21 @@ class MapGenerator {
         }
     }
     
-    generateBody(grid) {
-        // Body area - wider section with mixed terrain
+    // ========== PLAY AREA METHODS (MAP-SPECIFIC) ==========
+    
+    generateBellJarPlayArea(grid) {
+        // Body area - wider section with mixed terrain (original bell jar behavior)
+        const BODY_EMPTY_CHANCE = 0.04;
+        const BODY_DIGGABLE_CHANCE = 0.9;
+        const BODY_UNDIGGABLE_CHANCE = 0.06;
+        
         for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
             for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
                 const rand = Math.random();
                 
-                if (rand < this.BODY_EMPTY_CHANCE) {
+                if (rand < BODY_EMPTY_CHANCE) {
                     grid[y][x] = TerrainType.EMPTY;
-                } else if (rand < this.BODY_EMPTY_CHANCE + this.BODY_DIGGABLE_CHANCE) {
+                } else if (rand < BODY_EMPTY_CHANCE + BODY_DIGGABLE_CHANCE) {
                     grid[y][x] = TerrainType.DIGGABLE;
                 } else {
                     grid[y][x] = TerrainType.UNDIGGABLE;
@@ -179,8 +205,111 @@ class MapGenerator {
         this.carveRandomPaths(grid);
     }
     
+    generateSimpleBoxPlayArea(grid) {
+        // Simple box: just fill the play area with diggable tiles
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
+                grid[y][x] = TerrainType.DIGGABLE;
+            }
+        }
+    }
+    
+    generateOpenFieldPlayArea(grid) {
+        // Open field: mixed terrain with more empty spaces
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
+                const rand = Math.random();
+                if (rand < 0.4) {
+                    grid[y][x] = TerrainType.EMPTY;
+                } else if (rand < 0.8) {
+                    grid[y][x] = TerrainType.DIGGABLE;
+                } else {
+                    grid[y][x] = TerrainType.UNDIGGABLE;
+                }
+            }
+        }
+        
+        // Create some clear areas
+        this.createClearings(grid);
+    }
+    
+    generateMazePlayArea(grid) {
+        // Maze: create a maze pattern in the play area
+        // Start with all diggable
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
+                grid[y][x] = TerrainType.DIGGABLE;
+            }
+        }
+        
+        // Create maze walls with undiggable blocks
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y += 3) {
+            for (let x = 2; x < this.MAP_WIDTH - 1; x += 3) {
+                if (x < this.MAP_WIDTH - 1 && y < this.MAP_HEIGHT - 1) {
+                    grid[y][x] = TerrainType.UNDIGGABLE;
+                }
+            }
+        }
+        
+        for (let x = 2; x < this.MAP_WIDTH - 1; x += 3) {
+            for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y += 3) {
+                if (x < this.MAP_WIDTH - 1 && y < this.MAP_HEIGHT - 1) {
+                    grid[y][x] = TerrainType.UNDIGGABLE;
+                }
+            }
+        }
+        
+        // Create some openings in the maze
+        for (let i = 0; i < 8; i++) {
+            const x = Math.floor(Math.random() * (this.MAP_WIDTH - 2)) + 1;
+            const y = Math.floor(Math.random() * (this.MAP_HEIGHT - this.BODY_START - 1)) + this.BODY_START;
+            grid[y][x] = TerrainType.EMPTY;
+        }
+    }
+    
+    generateCavernPlayArea(grid) {
+        // Cavern: create cavern-like structures in the play area
+        // Start with mostly undiggable
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
+                grid[y][x] = TerrainType.UNDIGGABLE;
+            }
+        }
+        
+        // Create cavern chambers
+        const caverns = [];
+        for (let i = 0; i < 4; i++) {
+            const cx = Math.floor(Math.random() * (this.MAP_WIDTH - 8)) + 4;
+            const cy = Math.floor(Math.random() * (this.MAP_HEIGHT - this.BODY_START - 4)) + this.BODY_START + 2;
+            const radius = Math.random() * 2 + 2;
+            caverns.push({ x: cx, y: cy, r: radius });
+        }
+        
+        // Create cavern areas
+        for (let y = this.BODY_START; y < this.MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
+                for (const cavern of caverns) {
+                    const dist = Math.sqrt(
+                        Math.pow(x - cavern.x, 2) + 
+                        Math.pow(y - cavern.y, 2)
+                    );
+                    if (dist < cavern.r) {
+                        grid[y][x] = TerrainType.EMPTY;
+                    } else if (dist < cavern.r + 1.5) {
+                        grid[y][x] = TerrainType.DIGGABLE;
+                    }
+                }
+            }
+        }
+        
+        // Connect caverns with tunnels
+        this.connectCaverns(grid, caverns);
+    }
+    
+    // ========== HELPER METHODS ==========
+    
     carveRandomPaths(grid) {
-        // Carve a few guaranteed paths through the body
+        // Carve a few guaranteed paths through the body (for bell jar)
         const numPaths = 2;
         
         for (let p = 0; p < numPaths; p++) {
@@ -202,151 +331,32 @@ class MapGenerator {
         }
     }
     
-    // ========== SIMPLE BOX MAP ==========
-    generateSimpleBoxMap() {
-        const grid = this.createEmptyGrid();
+    createClearings(grid) {
+        // Create some open clearings for open field map
+        const numClearings = 3;
         
-        // Create undiggable border
-        for (let y = 0; y < this.MAP_HEIGHT; y++) {
-            for (let x = 0; x < this.MAP_WIDTH; x++) {
-                if (y === 0 || y === this.MAP_HEIGHT - 1 || 
-                    x === 0 || x === this.MAP_WIDTH - 1) {
-                    grid[y][x] = TerrainType.UNDIGGABLE;
-                } else {
-                    // Fill interior with diggable tiles
-                    grid[y][x] = TerrainType.DIGGABLE;
-                }
-            }
-        }
-        
-        // Create a small starting area at top
-        for (let y = 1; y <= 3; y++) {
-            for (let x = Math.floor(this.MAP_WIDTH / 2) - 2; 
-                 x <= Math.floor(this.MAP_WIDTH / 2) + 2; x++) {
-                if (x > 0 && x < this.MAP_WIDTH - 1) {
-                    grid[y][x] = TerrainType.EMPTY;
-                }
-            }
-        }
-        
-        return grid;
-    }
-    
-    // ========== OPEN FIELD MAP ==========
-    generateOpenFieldMap() {
-        const grid = this.createEmptyGrid();
-        
-        // Create undiggable border
-        this.generateBorders(grid);
-        
-        // Fill with mixed terrain
-        for (let y = 1; y < this.MAP_HEIGHT - 1; y++) {
-            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
-                const rand = Math.random();
-                if (rand < 0.3) {
-                    grid[y][x] = TerrainType.EMPTY;
-                } else if (rand < 0.8) {
-                    grid[y][x] = TerrainType.DIGGABLE;
-                } else {
-                    grid[y][x] = TerrainType.UNDIGGABLE;
-                }
-            }
-        }
-        
-        // Ensure starting area is clear
-        const centerX = Math.floor(this.MAP_WIDTH / 2);
-        const centerY = Math.floor(this.MAP_HEIGHT / 2);
-        for (let dy = -2; dy <= 2; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-                const x = centerX + dx;
-                const y = centerY + dy;
-                if (x > 0 && x < this.MAP_WIDTH - 1 && 
-                    y > 0 && y < this.MAP_HEIGHT - 1) {
-                    grid[y][x] = TerrainType.EMPTY;
-                }
-            }
-        }
-        
-        return grid;
-    }
-    
-    // ========== MAZE MAP ==========
-    generateMazeMap() {
-        const grid = this.createEmptyGrid();
-        
-        // Fill everything with diggable first
-        for (let y = 0; y < this.MAP_HEIGHT; y++) {
-            for (let x = 0; x < this.MAP_WIDTH; x++) {
-                grid[y][x] = TerrainType.DIGGABLE;
-            }
-        }
-        
-        // Create maze pattern with undiggable walls
-        for (let y = 0; y < this.MAP_HEIGHT; y += 2) {
-            for (let x = 0; x < this.MAP_WIDTH; x++) {
-                grid[y][x] = TerrainType.UNDIGGABLE;
-            }
-        }
-        
-        for (let x = 0; x < this.MAP_WIDTH; x += 2) {
-            for (let y = 0; y < this.MAP_HEIGHT; y++) {
-                grid[y][x] = TerrainType.UNDIGGABLE;
-            }
-        }
-        
-        // Create some openings
-        for (let i = 0; i < 20; i++) {
-            const x = Math.floor(Math.random() * (this.MAP_WIDTH - 2)) + 1;
-            const y = Math.floor(Math.random() * (this.MAP_HEIGHT - 2)) + 1;
-            grid[y][x] = TerrainType.EMPTY;
-        }
-        
-        // Clear starting area
-        grid[1][1] = TerrainType.EMPTY;
-        grid[1][2] = TerrainType.EMPTY;
-        grid[2][1] = TerrainType.EMPTY;
-        
-        return grid;
-    }
-    
-    // ========== CAVERN MAP ==========
-    generateCavernMap() {
-        const grid = this.createEmptyGrid();
-        
-        // Start with all undiggable
-        for (let y = 0; y < this.MAP_HEIGHT; y++) {
-            for (let x = 0; x < this.MAP_WIDTH; x++) {
-                grid[y][x] = TerrainType.UNDIGGABLE;
-            }
-        }
-        
-        // Carve out cavern areas using cellular automata
-        const caverns = [];
-        for (let i = 0; i < 5; i++) {
-            const cx = Math.floor(Math.random() * (this.MAP_WIDTH - 6)) + 3;
-            const cy = Math.floor(Math.random() * (this.MAP_HEIGHT - 6)) + 3;
-            const radius = Math.random() * 3 + 2;
-            caverns.push({ x: cx, y: cy, r: radius });
-        }
-        
-        // Create cavern areas
-        for (let y = 1; y < this.MAP_HEIGHT - 1; y++) {
-            for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
-                for (const cavern of caverns) {
-                    const dist = Math.sqrt(
-                        Math.pow(x - cavern.x, 2) + 
-                        Math.pow(y - cavern.y, 2)
-                    );
-                    if (dist < cavern.r) {
-                        grid[y][x] = TerrainType.EMPTY;
-                    } else if (dist < cavern.r + 2) {
-                        grid[y][x] = TerrainType.DIGGABLE;
+        for (let i = 0; i < numClearings; i++) {
+            const cx = Math.floor(Math.random() * (this.MAP_WIDTH - 8)) + 4;
+            const cy = Math.floor(Math.random() * (this.MAP_HEIGHT - this.BODY_START - 4)) + this.BODY_START + 2;
+            const radius = 2;
+            
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const x = cx + dx;
+                    const y = cy + dy;
+                    if (x > 0 && x < this.MAP_WIDTH - 1 && 
+                        y >= this.BODY_START && y < this.MAP_HEIGHT - 1) {
+                        if (dx * dx + dy * dy <= radius * radius) {
+                            grid[y][x] = TerrainType.EMPTY;
+                        }
                     }
                 }
             }
         }
-        
-        // Connect caverns with tunnels
+    }
+    
+    connectCaverns(grid, caverns) {
+        // Connect caverns with tunnels (for cavern map)
         for (let i = 0; i < caverns.length - 1; i++) {
             const c1 = caverns[i];
             const c2 = caverns[i + 1];
@@ -360,8 +370,6 @@ class MapGenerator {
             while (x !== tx) {
                 if (grid[y] && grid[y][x] !== undefined) {
                     grid[y][x] = TerrainType.DIGGABLE;
-                    if (y > 0) grid[y - 1][x] = TerrainType.DIGGABLE;
-                    if (y < this.MAP_HEIGHT - 1) grid[y + 1][x] = TerrainType.DIGGABLE;
                 }
                 x += x < tx ? 1 : -1;
             }
@@ -370,39 +378,24 @@ class MapGenerator {
             while (y !== ty) {
                 if (grid[y] && grid[y][x] !== undefined) {
                     grid[y][x] = TerrainType.DIGGABLE;
-                    if (x > 0) grid[y][x - 1] = TerrainType.DIGGABLE;
-                    if (x < this.MAP_WIDTH - 1) grid[y][x + 1] = TerrainType.DIGGABLE;
                 }
                 y += y < ty ? 1 : -1;
             }
         }
-        
-        return grid;
     }
     
-    // Get a safe starting position for the player
+    // Get a safe starting position for the player (same for all maps)
     getPlayerStartPosition() {
-        // Different starting positions based on map type
-        switch(this.currentMapType) {
-            case this.MAP_TYPES.SIMPLE_BOX:
-                return { x: Math.floor(this.MAP_WIDTH / 2), y: 2 };
-            case this.MAP_TYPES.OPEN_FIELD:
-                return { x: Math.floor(this.MAP_WIDTH / 2), y: Math.floor(this.MAP_HEIGHT / 2) };
-            case this.MAP_TYPES.MAZE:
-                return { x: 1, y: 1 };
-            case this.MAP_TYPES.CAVERN:
-                // Find first empty space
-                for (let y = 1; y < this.MAP_HEIGHT - 1; y++) {
-                    for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
-                        // This will be set after map generation
-                        return { x: Math.floor(this.MAP_WIDTH / 2), y: Math.floor(this.MAP_HEIGHT / 2) };
-                    }
-                }
-                return { x: Math.floor(this.MAP_WIDTH / 2), y: Math.floor(this.MAP_HEIGHT / 2) };
-            case this.MAP_TYPES.BELL_JAR:
-            default:
-                return { x: Math.floor(this.MAP_WIDTH / 2), y: Math.floor(this.HOME_BASE_HEIGHT / 2) };
-        }
+        // Always spawn in the center of the home base area
+        return { 
+            x: Math.floor(this.MAP_WIDTH / 2), 
+            y: Math.floor(this.HOME_BASE_HEIGHT / 2) 
+        };
+    }
+    
+    // Check if a position is in the home base area (for special rendering)
+    isInHomeBase(x, y) {
+        return y > 0 && y < this.HOME_BASE_HEIGHT && x > 0 && x < this.MAP_WIDTH - 1;
     }
 }
 

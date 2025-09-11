@@ -1,4 +1,4 @@
-// Main game initialization and game loop
+// Updated Main.js - connects map generator to tile renderer
 // Mining Game Demo with Dual Grid System
 
 class MiningGame {
@@ -34,6 +34,9 @@ class MiningGame {
         this.tileRenderer = new TileRenderer();
         this.inputHandler = new InputHandler();
         
+        // Connect map generator to tile renderer for home base detection
+        this.tileRenderer.setMapGenerator(this.mapGenerator);
+        
         // Load tilemap
         await this.tileRenderer.loadTilemap('assets/tilemap.png');
         
@@ -60,6 +63,9 @@ class MiningGame {
         
         // Setup debug controls
         this.setupDebugControls();
+        
+        // Setup map type controls
+        this.setupMapTypeControls();
         
         // Start game loop
         this.isRunning = true;
@@ -103,6 +109,51 @@ class MiningGame {
                 this.showBaseGrid = e.target.checked;
             });
         }
+    }
+    
+    setupMapTypeControls() {
+        // Add map type selector to debug area
+        const debugInfo = document.querySelector('.debug-info');
+        if (debugInfo) {
+            const mapTypeSelector = document.createElement('select');
+            mapTypeSelector.id = 'mapTypeSelector';
+            mapTypeSelector.innerHTML = `
+                <option value="bellJar">Bell Jar</option>
+                <option value="simpleBox">Simple Box</option>
+                <option value="openField">Open Field</option>
+                <option value="maze">Maze</option>
+                <option value="cavern">Cavern</option>
+            `;
+            
+            const mapTypeLabel = document.createElement('label');
+            mapTypeLabel.textContent = 'Map Type: ';
+            mapTypeLabel.appendChild(mapTypeSelector);
+            
+            debugInfo.appendChild(mapTypeLabel);
+            
+            // Handle map type changes
+            mapTypeSelector.addEventListener('change', (e) => {
+                this.changeMapType(e.target.value);
+            });
+        }
+    }
+    
+    changeMapType(mapType) {
+        console.log(`Changing map type to: ${mapType}`);
+        
+        // Set the new map type
+        this.mapGenerator.setMapType(mapType);
+        
+        // Generate new map
+        const baseGrid = this.mapGenerator.generateMap();
+        this.gridSystem.setBaseGrid(baseGrid);
+        
+        // Reset player to starting position
+        const startPos = this.mapGenerator.getPlayerStartPosition();
+        this.player.setPosition(startPos.x, startPos.y);
+        this.inputHandler.updatePlayerPositionDisplay(this.player);
+        
+        console.log(`Map changed to ${mapType}, player reset to (${startPos.x}, ${startPos.y})`);
     }
     
     handleDig(affectedTiles) {
@@ -193,6 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Game started successfully!');
         console.log('Controls: Arrow keys to move, Space to dig');
         console.log('Debug: Check "Show Grid" or "Show Base Grid" to visualize the dual-grid system');
+        console.log('Map Types: Use the dropdown to switch between different map layouts');
     } catch (error) {
         console.error('Failed to initialize game:', error);
     }

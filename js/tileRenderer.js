@@ -1,5 +1,5 @@
-// Tile Renderer for Mining Game
-// Handles loading and rendering tiles from the tilemap
+// Tile Renderer for Mining Game - Updated with Home Base Support
+// Handles loading and rendering tiles from the tilemap with special home base coloring
 
 class TileRenderer {
     constructor() {
@@ -13,12 +13,23 @@ class TileRenderer {
         this.RENDER_TILE_SIZE = 32; // Size to render tiles on screen
         this.SOURCE_TILE_SIZE = TILE_SIZE; // From tilePatterns.js (100px)
         
+        // Reference to map generator for home base detection
+        this.mapGenerator = null;
+        
         // Debug colors for base grid visualization
         this.DEBUG_COLORS = {
             [TerrainType.EMPTY]: 'rgba(255, 255, 255, 0.5)',
             [TerrainType.DIGGABLE]: 'rgba(128, 128, 128, 0.5)',
             [TerrainType.UNDIGGABLE]: 'rgba(0, 0, 0, 0.5)'
         };
+        
+        // Home base color
+        this.HOME_BASE_COLOR = '#90EE90'; // Light green
+    }
+    
+    // Set reference to map generator for home base detection
+    setMapGenerator(mapGenerator) {
+        this.mapGenerator = mapGenerator;
     }
     
     async loadTilemap(imagePath) {
@@ -136,9 +147,23 @@ class TileRenderer {
         ctx.strokeRect(x, y, size, size);
     }
     
-    renderTile(ctx, tileIndex, screenX, screenY) {
+    renderTile(ctx, tileIndex, screenX, screenY, gridX = null, gridY = null) {
         if (!this.tilemapImage) return;
         
+        // Check if this tile is in the home base area
+        const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
+                           this.mapGenerator.isInHomeBase(gridX, gridY);
+        
+        if (isHomeBase) {
+            // Render home base tile with light green background
+            this.renderHomeBaseTile(ctx, tileIndex, screenX, screenY);
+        } else {
+            // Normal tile rendering
+            this.renderNormalTile(ctx, tileIndex, screenX, screenY);
+        }
+    }
+    
+    renderNormalTile(ctx, tileIndex, screenX, screenY) {
         // Calculate source position in tilemap
         const sourceCol = tileIndex % TILEMAP_WIDTH;
         const sourceRow = Math.floor(tileIndex / TILEMAP_WIDTH);
@@ -153,6 +178,22 @@ class TileRenderer {
         );
     }
     
+    renderHomeBaseTile(ctx, tileIndex, screenX, screenY) {
+        // First draw light green background
+        ctx.fillStyle = this.HOME_BASE_COLOR;
+        ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+        
+        // Then draw the normal tile with some transparency
+        ctx.globalAlpha = 0.3;
+        this.renderNormalTile(ctx, tileIndex, screenX, screenY);
+        ctx.globalAlpha = 1.0;
+        
+        // Add subtle border to indicate home base
+        ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+    }
+    
     renderBaseGridDebug(ctx, baseGrid, offsetX, offsetY) {
         const gridHeight = baseGrid.length;
         const gridWidth = baseGrid[0].length;
@@ -162,8 +203,16 @@ class TileRenderer {
                 const screenX = x * this.RENDER_TILE_SIZE + offsetX;
                 const screenY = y * this.RENDER_TILE_SIZE + offsetY;
                 
+                // Check if this is home base
+                const isHomeBase = this.mapGenerator && this.mapGenerator.isInHomeBase(x, y);
+                
                 // Draw colored overlay
-                ctx.fillStyle = this.DEBUG_COLORS[baseGrid[y][x]];
+                let fillColor = this.DEBUG_COLORS[baseGrid[y][x]];
+                if (isHomeBase) {
+                    fillColor = 'rgba(144, 238, 144, 0.7)'; // Light green with transparency
+                }
+                
+                ctx.fillStyle = fillColor;
                 ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
                 
                 // Draw grid lines
@@ -171,7 +220,7 @@ class TileRenderer {
                 ctx.strokeRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
                 
                 // Draw terrain type number
-                ctx.fillStyle = 'black';
+                ctx.fillStyle = isHomeBase ? 'darkgreen' : 'black';
                 ctx.font = '10px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -180,6 +229,17 @@ class TileRenderer {
                     screenX + this.RENDER_TILE_SIZE / 2,
                     screenY + this.RENDER_TILE_SIZE / 2
                 );
+                
+                // Add 'H' indicator for home base in debug mode
+                if (isHomeBase) {
+                    ctx.fillStyle = 'darkgreen';
+                    ctx.font = '8px monospace';
+                    ctx.fillText(
+                        'H',
+                        screenX + this.RENDER_TILE_SIZE / 2,
+                        screenY + this.RENDER_TILE_SIZE / 2 + 8
+                    );
+                }
             }
         }
     }
