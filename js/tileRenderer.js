@@ -1,5 +1,5 @@
-// Tile Renderer for Mining Game - Updated for 80 Tile Support (10x8 layout)
-// Handles loading and rendering tiles from the tilemap with special home base coloring
+// Tile Renderer for Mining Game - Refactored with Better Encapsulation
+// Handles loading and rendering tiles from the tilemap
 
 class TileRenderer {
     constructor() {
@@ -13,9 +13,6 @@ class TileRenderer {
         this.RENDER_TILE_SIZE = 32; // Size to render tiles on screen
         this.SOURCE_TILE_SIZE = TILE_SIZE; // From tilePatterns.js (100px)
         
-        // Reference to map generator for home base detection
-        this.mapGenerator = null;
-        
         // Debug colors for base grid visualization
         this.DEBUG_COLORS = {
             [TerrainType.EMPTY]: 'rgba(255, 255, 255, 0.5)',
@@ -25,11 +22,6 @@ class TileRenderer {
         
         // Home base color
         this.HOME_BASE_COLOR = '#90EE90'; // Light green
-    }
-    
-    // Set reference to map generator for home base detection
-    setMapGenerator(mapGenerator) {
-        this.mapGenerator = mapGenerator;
     }
     
     async loadTilemap(imagePath) {
@@ -52,9 +44,8 @@ class TileRenderer {
             
             this.tilemapImage.onerror = () => {
                 console.error('Failed to load tilemap, using fallback');
-                // Create fallback colored tiles if image fails to load
                 this.createFallbackTiles();
-                resolve(); // Still resolve so game can continue with fallback
+                resolve();
             };
             
             this.tilemapImage.src = imagePath;
@@ -62,7 +53,7 @@ class TileRenderer {
     }
     
     createFallbackTiles() {
-        // Create a canvas to generate all 81 colored tiles as fallback
+        // Create a canvas to generate all 80 colored tiles as fallback
         const canvas = document.createElement('canvas');
         canvas.width = this.SOURCE_TILE_SIZE * TILEMAP_COLUMNS;
         canvas.height = this.SOURCE_TILE_SIZE * TILEMAP_ROWS;
@@ -71,7 +62,7 @@ class TileRenderer {
         
         console.log(`Creating fallback tilemap: ${canvas.width}x${canvas.height} (${TOTAL_TILES} tiles)`);
         
-        // Generate all 81 tiles
+        // Generate all 80 tiles
         for (let i = 0; i < TOTAL_TILES; i++) {
             const pattern = getPatternByIndex(i);
             const x = pattern.gridX * this.SOURCE_TILE_SIZE;
@@ -102,7 +93,7 @@ class TileRenderer {
             2: '#2c2c2c'  // Undiggable - dark gray stone
         };
         
-        // Create more sophisticated visual effects for 81-tile system
+        // Create more sophisticated visual effects for 80-tile system
         const drawQuadrant = (qx, qy, terrainType) => {
             // Base color
             ctx.fillStyle = colors[terrainType];
@@ -171,12 +162,15 @@ class TileRenderer {
         ctx.fillText(pattern.index.toString(), x + 2, y + 2);
     }
     
-    renderTile(ctx, tileIndex, screenX, screenY, gridX = null, gridY = null) {
+    // ========== PURE RENDERING METHODS (NO LOCATION CHECKS) ==========
+    
+    // Render a standard tile from the tilemap
+    renderStandardTile(ctx, tileIndex, screenX, screenY) {
         if (!this.tilemapImage) return;
         
         // Handle special case: all-empty pattern
         if (tileIndex === -1) {
-            this.renderEmptyTile(ctx, screenX, screenY, gridX, gridY);
+            this.renderEmptyTile(ctx, screenX, screenY);
             return;
         }
 
@@ -186,20 +180,6 @@ class TileRenderer {
             tileIndex = 0;
         }
         
-        // Check if this tile is in the home base area
-        const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
-                           this.mapGenerator.isInHomeBase(gridX, gridY);
-        
-        if (isHomeBase) {
-            // Render home base tile with light green background
-            this.renderHomeBaseTile(ctx, tileIndex, screenX, screenY);
-        } else {
-            // Normal tile rendering
-            this.renderNormalTile(ctx, tileIndex, screenX, screenY);
-        }
-    }
-    
-    renderNormalTile(ctx, tileIndex, screenX, screenY) {
         // Calculate source position in tilemap using 10x8 grid
         const pattern = getPatternByIndex(tileIndex);
         const sourceX = pattern.gridX * this.SOURCE_TILE_SIZE;
@@ -213,38 +193,14 @@ class TileRenderer {
         );
     }
     
-    renderEmptyTile(ctx, screenX, screenY, gridX = null, gridY = null) {
-        // Check if this is in the home base area
-        const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
-                           this.mapGenerator.isInHomeBase(gridX, gridY);
-        
+    // Render an empty tile (all corners are empty)
+    renderEmptyTile(ctx, screenX, screenY) {
         const size = this.RENDER_TILE_SIZE;
         const half = size / 2;
         
-        if (isHomeBase) {
-            // For home base, draw light green background with empty quadrants
-            ctx.fillStyle = this.HOME_BASE_COLOR;
-            ctx.fillRect(screenX, screenY, size, size);
-            
-            // Draw four empty quadrants on top with some transparency
-            ctx.fillStyle = 'rgba(232, 244, 248, 0.7)'; // Light blue-white with transparency
-            
-            // Draw each quadrant
-            ctx.fillRect(screenX, screenY, half, half); // Top-left
-            ctx.fillRect(screenX + half, screenY, half, half); // Top-right
-            ctx.fillRect(screenX, screenY + half, half, half); // Bottom-left
-            ctx.fillRect(screenX + half, screenY + half, half, half); // Bottom-right
-            
-            // Add subtle border to indicate home base
-            ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(screenX, screenY, size, size);
-        } else {
-            // Normal empty tile - draw four empty quadrants
-            // Use the same color as the fallback empty quadrants
-            ctx.fillStyle = '#e8f4f8'; // Light blue-white (matching fallback empty color)
-            ctx.fillRect(screenX, screenY, size, size);
-        }
+        // Normal empty tile - draw four empty quadrants
+        ctx.fillStyle = '#e8f4f8'; // Light blue-white (matching fallback empty color)
+        ctx.fillRect(screenX, screenY, size, size);
         
         // Add quadrant dividers to match the tileset style
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
@@ -264,15 +220,24 @@ class TileRenderer {
         ctx.strokeRect(screenX, screenY, size, size);
     }
     
+    // Render a tile with home base background overlay
     renderHomeBaseTile(ctx, tileIndex, screenX, screenY) {
         // First draw light green background
         ctx.fillStyle = this.HOME_BASE_COLOR;
         ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
         
-        // Then draw the normal tile with some transparency
-        ctx.globalAlpha = 0.3;
-        this.renderNormalTile(ctx, tileIndex, screenX, screenY);
-        ctx.globalAlpha = 1.0;
+        // For empty tiles in home base, use lighter overlay
+        if (tileIndex === -1) {
+            // Draw semi-transparent empty tile overlay
+            ctx.globalAlpha = 0.7;
+            this.renderEmptyTile(ctx, screenX, screenY);
+            ctx.globalAlpha = 1.0;
+        } else {
+            // For non-empty tiles, draw with reduced opacity
+            ctx.globalAlpha = 0.3;
+            this.renderStandardTile(ctx, tileIndex, screenX, screenY);
+            ctx.globalAlpha = 1.0;
+        }
         
         // Add subtle border to indicate home base
         ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
@@ -280,7 +245,9 @@ class TileRenderer {
         ctx.strokeRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
     }
     
-    renderBaseGridDebug(ctx, baseGrid, offsetX, offsetY) {
+    // ========== DEBUG RENDERING METHODS ==========
+    
+    renderBaseGridDebug(ctx, baseGrid, offsetX, offsetY, mapGenerator) {
         const gridHeight = baseGrid.length;
         const gridWidth = baseGrid[0].length;
         
@@ -290,7 +257,7 @@ class TileRenderer {
                 const screenY = y * this.RENDER_TILE_SIZE + offsetY;
                 
                 // Check if this base grid position is in home base
-                const isHomeBase = this.mapGenerator && this.mapGenerator.isInHomeBase(x, y);
+                const isHomeBase = mapGenerator && mapGenerator.isInHomeBase(x, y);
                 
                 // Draw colored overlay
                 let fillColor = this.DEBUG_COLORS[baseGrid[y][x]];
