@@ -218,23 +218,50 @@ class TileRenderer {
         const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
                            this.mapGenerator.isInHomeBase(gridX, gridY);
         
+        const size = this.RENDER_TILE_SIZE;
+        const half = size / 2;
+        
         if (isHomeBase) {
-            // Render home base with light green
+            // For home base, draw light green background with empty quadrants
             ctx.fillStyle = this.HOME_BASE_COLOR;
-            ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+            ctx.fillRect(screenX, screenY, size, size);
             
-            // Add subtle border
+            // Draw four empty quadrants on top with some transparency
+            ctx.fillStyle = 'rgba(232, 244, 248, 0.7)'; // Light blue-white with transparency
+            
+            // Draw each quadrant
+            ctx.fillRect(screenX, screenY, half, half); // Top-left
+            ctx.fillRect(screenX + half, screenY, half, half); // Top-right
+            ctx.fillRect(screenX, screenY + half, half, half); // Bottom-left
+            ctx.fillRect(screenX + half, screenY + half, half, half); // Bottom-right
+            
+            // Add subtle border to indicate home base
             ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
             ctx.lineWidth = 1;
-            ctx.strokeRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+            ctx.strokeRect(screenX, screenY, size, size);
         } else {
-            // Render completely transparent/empty
-            ctx.clearRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
-            
-            // Optional: add very subtle background for debugging
-            ctx.fillStyle = 'rgba(248, 248, 248, 0.1)';
-            ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+            // Normal empty tile - draw four empty quadrants
+            // Use the same color as the fallback empty quadrants
+            ctx.fillStyle = '#e8f4f8'; // Light blue-white (matching fallback empty color)
+            ctx.fillRect(screenX, screenY, size, size);
         }
+        
+        // Add quadrant dividers to match the tileset style
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Vertical center line
+        ctx.moveTo(screenX + half, screenY);
+        ctx.lineTo(screenX + half, screenY + size);
+        // Horizontal center line
+        ctx.moveTo(screenX, screenY + half);
+        ctx.lineTo(screenX + size, screenY + half);
+        ctx.stroke();
+        
+        // Add tile border to match other tiles
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(screenX, screenY, size, size);
     }
     
     renderHomeBaseTile(ctx, tileIndex, screenX, screenY) {

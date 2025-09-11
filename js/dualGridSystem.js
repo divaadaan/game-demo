@@ -77,6 +77,9 @@ class DualGridSystem {
         const pattern = this.getVisualTilePattern(visualX, visualY);
         const key = `${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}`;
         
+        // Debug logging
+        //console.log(`Visual tile (${visualX},${visualY}): pattern ${key}`);
+
         // Get tile index from pattern lookup
         const tileIndex = PATTERN_LOOKUP.get(key);
         
