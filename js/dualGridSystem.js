@@ -92,12 +92,30 @@ class DualGridSystem {
     }
     
     // Check if a visual grid position is in the home base area
-    isVisualTileInHomeBase(visualX, visualY) {
-        // Visual tiles should check their visual grid position for home base
-        // The visual grid has the same dimensions as the base grid
-        // so we check if the visual tile position is in the home base area
-        return this.mapGenerator && this.mapGenerator.isInHomeBase(visualX, visualY);
+isVisualTileInHomeBase(visualX, visualY) {
+    // A visual tile is in the home base if ANY of its four corners
+    // (base grid samples) are in the home base area
+    // This ensures proper visual coverage of the home base zone
+    
+    if (!this.mapGenerator) return false;
+    
+    // Check all four corners that this visual tile samples from
+    const corners = [
+        { x: visualX, y: visualY },         // Top-left
+        { x: visualX + 1, y: visualY },     // Top-right
+        { x: visualX, y: visualY + 1 },     // Bottom-left
+        { x: visualX + 1, y: visualY + 1 }  // Bottom-right
+    ];
+    
+    // If any corner is in the home base, render this visual tile as home base
+    for (const corner of corners) {
+        if (this.mapGenerator.isInHomeBase(corner.x, corner.y)) {
+            return true;
+        }
     }
+    
+    return false;
+}
     
     // Render the entire dual grid system
     render(ctx, offsetX = 0, offsetY = 0, showGrid = false, showBaseGrid = false) {
