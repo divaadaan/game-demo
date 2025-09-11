@@ -92,30 +92,123 @@ class DualGridSystem {
     }
     
     // Check if a visual grid position is in the home base area
-isVisualTileInHomeBase(visualX, visualY) {
-    // A visual tile is in the home base if ANY of its four corners
-    // (base grid samples) are in the home base area
-    // This ensures proper visual coverage of the home base zone
+    isVisualTileInHomeBase(visualX, visualY) {
+        // A visual tile is in the home base if ANY of its four corners
+        // (base grid samples) are in the home base area
+        // This ensures proper visual coverage of the home base zone
+        
+        if (!this.mapGenerator) return false;
+        
+        // Check all four corners that this visual tile samples from
+        const corners = [
+            { x: visualX, y: visualY },         // Top-left
+            { x: visualX + 1, y: visualY },     // Top-right
+            { x: visualX, y: visualY + 1 },     // Bottom-left
+            { x: visualX + 1, y: visualY + 1 }  // Bottom-right
+        ];
+        
+        // If any corner is in the home base, render this visual tile as home base
+        for (const corner of corners) {
+            if (this.mapGenerator.isInHomeBase(corner.x, corner.y)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
     
-    if (!this.mapGenerator) return false;
-    
-    // Check all four corners that this visual tile samples from
-    const corners = [
-        { x: visualX, y: visualY },         // Top-left
-        { x: visualX + 1, y: visualY },     // Top-right
-        { x: visualX, y: visualY + 1 },     // Bottom-left
-        { x: visualX + 1, y: visualY + 1 }  // Bottom-right
-    ];
-    
-    // If any corner is in the home base, render this visual tile as home base
-    for (const corner of corners) {
-        if (this.mapGenerator.isInHomeBase(corner.x, corner.y)) {
-            return true;
+    // NEW: Render base grid shadows - shows the skeleton of the map
+    renderBaseGridShadows(ctx, offsetX, offsetY) {
+        const tileSize = this.tileRenderer.RENDER_TILE_SIZE;
+        
+        // Shadow colors for base grid visualization
+        const shadowColors = {
+            [TerrainType.EMPTY]: 'rgba(200, 255, 200, 0.3)',    // Light green shadow
+            [TerrainType.DIGGABLE]: 'rgba(139, 115, 85, 0.3)',  // Brown shadow
+            [TerrainType.UNDIGGABLE]: 'rgba(50, 50, 50, 0.3)'   // Dark gray shadow
+        };
+        
+        // Draw base grid shadows
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const terrainType = this.baseGrid[y][x];
+                const screenX = x * tileSize + offsetX;
+                const screenY = y * tileSize + offsetY;
+                
+                // Draw colored shadow for this base grid cell
+                ctx.fillStyle = shadowColors[terrainType];
+                ctx.fillRect(screenX, screenY, tileSize, tileSize);
+                
+                // Add subtle border to show base grid structure
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+            }
+        }
+        
+        // Highlight home base area if available
+        if (this.mapGenerator) {
+            ctx.fillStyle = 'rgba(144, 238, 144, 0.2)'; // Extra light green overlay for home base
+            for (let y = 0; y < this.height; y++) {
+                for (let x = 0; x < this.width; x++) {
+                    if (this.mapGenerator.isInHomeBase(x, y)) {
+                        const screenX = x * tileSize + offsetX;
+                        const screenY = y * tileSize + offsetY;
+                        ctx.fillRect(screenX, screenY, tileSize, tileSize);
+                    }
+                }
+            }
         }
     }
     
-    return false;
-}
+    // NEW: Unified grid rendering method that handles all grid visualization
+    renderGridVisualization(ctx, offsetX, offsetY) {
+        const tileSize = this.tileRenderer.RENDER_TILE_SIZE;
+        
+        // First, render base grid shadows to show the map skeleton
+        this.renderBaseGridShadows(ctx, offsetX, offsetY);
+        
+        // Then render the grid lines on top
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]); // Dashed lines for visual grid
+        
+        // Draw visual grid lines (these align with the visual tiles)
+        for (let x = 0; x <= this.width; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * tileSize + offsetX, offsetY);
+            ctx.lineTo(x * tileSize + offsetX, this.height * tileSize + offsetY);
+            ctx.stroke();
+        }
+        
+        for (let y = 0; y <= this.height; y++) {
+            ctx.beginPath();
+            ctx.moveTo(offsetX, y * tileSize + offsetY);
+            ctx.lineTo(this.width * tileSize + offsetX, y * tileSize + offsetY);
+            ctx.stroke();
+        }
+        
+        ctx.setLineDash([]); // Reset line dash
+        
+        // Add coordinate labels at edges (optional but helpful)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Label x-coordinates
+        for (let x = 0; x < this.width; x++) {
+            const screenX = x * tileSize + tileSize / 2 + offsetX;
+            ctx.fillText(x.toString(), screenX, offsetY - 5);
+        }
+        
+        // Label y-coordinates
+        ctx.textAlign = 'right';
+        for (let y = 0; y < this.height; y++) {
+            const screenY = y * tileSize + tileSize / 2 + offsetY;
+            ctx.fillText(y.toString(), offsetX - 5, screenY);
+        }
+    }
     
     // Render the entire dual grid system
     render(ctx, offsetX = 0, offsetY = 0, showGrid = false, showBaseGrid = false) {
@@ -124,7 +217,7 @@ isVisualTileInHomeBase(visualX, visualY) {
         const canvasHeight = this.height * this.tileRenderer.RENDER_TILE_SIZE;
         ctx.clearRect(offsetX, offsetY, canvasWidth, canvasHeight);
         
-        // Render base grid debug view if enabled
+        // Render base grid debug view if enabled (full debug mode)
         if (showBaseGrid) {
             this.tileRenderer.renderBaseGridDebug(ctx, this.baseGrid, offsetX, offsetY, this.mapGenerator);
         }
@@ -148,8 +241,12 @@ isVisualTileInHomeBase(visualX, visualY) {
             }
         }
         
-        // Render grid lines if enabled
-        if (showGrid) {
+        // Render grid visualization if enabled (includes base shadows + grid lines)
+        if (showGrid && !showBaseGrid) {
+            // Use the new unified grid visualization method
+            this.renderGridVisualization(ctx, offsetX, offsetY);
+        } else if (showGrid && showBaseGrid) {
+            // If both are enabled, just draw grid lines since base grid debug is already shown
             this.tileRenderer.renderGridLines(ctx, this.width, this.height, offsetX, offsetY);
         }
     }
