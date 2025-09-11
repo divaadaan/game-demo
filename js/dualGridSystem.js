@@ -161,7 +161,7 @@ class DualGridSystem {
         }
     }
     
-    // NEW: Unified grid rendering method that handles all grid visualization
+    // Unified grid rendering method that handles all grid visualization
     renderGridVisualization(ctx, offsetX, offsetY) {
         const tileSize = this.tileRenderer.RENDER_TILE_SIZE;
         
@@ -190,23 +190,25 @@ class DualGridSystem {
         
         ctx.setLineDash([]); // Reset line dash
         
-        // Add coordinate labels at edges (optional but helpful)
+        // Add coordinate labels INSIDE the canvas area to avoid UI conflicts
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.font = '10px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Label x-coordinates
+        // Label x-coordinates 
         for (let x = 0; x < this.width; x++) {
             const screenX = x * tileSize + tileSize / 2 + offsetX;
-            ctx.fillText(x.toString(), screenX, offsetY - 5);
+            const screenY = offsetY + 10;
+            ctx.fillText(x.toString(), screenX, screenY);
         }
         
-        // Label y-coordinates
-        ctx.textAlign = 'right';
+        // Label y-coordinates 
+        ctx.textAlign = 'left';
         for (let y = 0; y < this.height; y++) {
+            const screenX = offsetX + 5; 
             const screenY = y * tileSize + tileSize / 2 + offsetY;
-            ctx.fillText(y.toString(), offsetX - 5, screenY);
+            ctx.fillText(y.toString(), screenX, screenY);
         }
     }
     
