@@ -1,4 +1,4 @@
-// Updated Main.js - connects map generator to tile renderer with 81-tile debug
+// Updated Main.js - connects map generator to dual grid system properly
 // Mining Game Demo with Dual Grid System
 
 class MiningGame {
@@ -34,9 +34,6 @@ class MiningGame {
         this.tileRenderer = new TileRenderer();
         this.inputHandler = new InputHandler();
         
-        // Connect map generator to tile renderer for home base detection
-        this.tileRenderer.setMapGenerator(this.mapGenerator);
-        
         // Load tilemap
         await this.tileRenderer.loadTilemap('assets/tilemap.png');
         
@@ -49,6 +46,9 @@ class MiningGame {
             this.mapGenerator.MAP_HEIGHT,
             this.tileRenderer
         );
+        
+        // Connect map generator to dual grid system (not to tile renderer)
+        this.gridSystem.setMapGenerator(this.mapGenerator);
         this.gridSystem.setBaseGrid(baseGrid);
         
         // Set canvas size based on map
@@ -218,6 +218,10 @@ class MiningGame {
         const pattern = this.gridSystem.getVisualTilePattern(playerPos.x, playerPos.y);
         const tileIndex = this.gridSystem.getTileIndex(playerPos.x, playerPos.y);
         console.log(`Player position (${playerPos.x},${playerPos.y}): pattern (${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}) -> tile ${tileIndex}`);
+        
+        // Check if player is in home base
+        const inHomeBase = this.gridSystem.isVisualTileInHomeBase(playerPos.x, playerPos.y);
+        console.log(`Player in home base: ${inHomeBase}`);
     }
     
     changeMapType(mapType) {

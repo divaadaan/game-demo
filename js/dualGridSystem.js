@@ -1,4 +1,4 @@
-// Dual Grid System for Mining Game - Updated with Home Base Support
+// Dual Grid System for Mining Game - Refactored with Better Encapsulation
 // Manages base grid (logic) and draw grid (visual) layers
 
 class DualGridSystem {
@@ -13,8 +13,16 @@ class DualGridSystem {
         // Visual offset for draw grid (0.5, 0.5 from base grid)
         this.VISUAL_OFFSET = 0.5;
         
+        // Reference to map generator for home base detection
+        this.mapGenerator = null;
+        
         // Initialize base grid
         this.initializeGrid();
+    }
+    
+    // Set the map generator reference
+    setMapGenerator(mapGenerator) {
+        this.mapGenerator = mapGenerator;
     }
     
     initializeGrid() {
@@ -77,14 +85,19 @@ class DualGridSystem {
         const pattern = this.getVisualTilePattern(visualX, visualY);
         const key = `${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}`;
         
-        // Debug logging
-        //console.log(`Visual tile (${visualX},${visualY}): pattern ${key}`);
-
         // Get tile index from pattern lookup
         const tileIndex = PATTERN_LOOKUP.get(key);
         
         // Return found index or default to 0 (all empty)
         return tileIndex !== undefined ? tileIndex : 0;
+    }
+    
+    // Check if a visual grid position is in the home base area
+    isVisualTileInHomeBase(visualX, visualY) {
+        // Visual tiles should check their visual grid position for home base
+        // The visual grid has the same dimensions as the base grid
+        // so we check if the visual tile position is in the home base area
+        return this.mapGenerator && this.mapGenerator.isInHomeBase(visualX, visualY);
     }
     
     // Render the entire dual grid system
@@ -96,7 +109,7 @@ class DualGridSystem {
         
         // Render base grid debug view if enabled
         if (showBaseGrid) {
-            this.tileRenderer.renderBaseGridDebug(ctx, this.baseGrid, offsetX, offsetY);
+            this.tileRenderer.renderBaseGridDebug(ctx, this.baseGrid, offsetX, offsetY, this.mapGenerator);
         }
         
         // Render visual tiles
@@ -107,8 +120,14 @@ class DualGridSystem {
                 const screenX = x * this.tileRenderer.RENDER_TILE_SIZE + offsetX;
                 const screenY = y * this.tileRenderer.RENDER_TILE_SIZE + offsetY;
                 
-                // Pass grid coordinates for home base detection
-                this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY, x, y);
+                // Check if this visual tile is in the home base area
+                if (this.isVisualTileInHomeBase(x, y)) {
+                    // Render with home base styling
+                    this.tileRenderer.renderHomeBaseTile(ctx, tileIndex, screenX, screenY);
+                } else {
+                    // Render standard tile
+                    this.tileRenderer.renderStandardTile(ctx, tileIndex, screenX, screenY);
+                }
             }
         }
         
@@ -159,8 +178,14 @@ class DualGridSystem {
                         this.tileRenderer.RENDER_TILE_SIZE, 
                         this.tileRenderer.RENDER_TILE_SIZE);
             
-            // Render updated tile with visual grid coordinates for home base detection
-            this.tileRenderer.renderTile(ctx, tileIndex, screenX, screenY, tile.x, tile.y);
+            // Check if this visual tile is in the home base area
+            if (this.isVisualTileInHomeBase(tile.x, tile.y)) {
+                // Render with home base styling
+                this.tileRenderer.renderHomeBaseTile(ctx, tileIndex, screenX, screenY);
+            } else {
+                // Render standard tile
+                this.tileRenderer.renderStandardTile(ctx, tileIndex, screenX, screenY);
+            }
         }
     }
 }
