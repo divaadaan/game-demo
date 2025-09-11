@@ -174,6 +174,12 @@ class TileRenderer {
     renderTile(ctx, tileIndex, screenX, screenY, gridX = null, gridY = null) {
         if (!this.tilemapImage) return;
         
+        // Handle special case: all-empty pattern
+        if (tileIndex === -1) {
+            this.renderEmptyTile(ctx, screenX, screenY, gridX, gridY);
+            return;
+        }
+
         // Validate tile index
         if (tileIndex < 0 || tileIndex >= TOTAL_TILES) {
             console.warn(`Invalid tile index: ${tileIndex}, using 0`);
