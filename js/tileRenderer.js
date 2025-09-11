@@ -1,4 +1,4 @@
-// Tile Renderer for Mining Game - Updated with Home Base Support
+// Tile Renderer for Mining Game - Updated for 80 Tile Support (10x8 layout)
 // Handles loading and rendering tiles from the tilemap with special home base coloring
 
 class TileRenderer {
@@ -45,7 +45,8 @@ class TileRenderer {
             
             this.tilemapImage.onload = () => {
                 this.tilemapLoaded = true;
-                console.log('Tilemap loaded successfully');
+                console.log(`Tilemap loaded successfully - Expected size: ${TILEMAP_COLUMNS * this.SOURCE_TILE_SIZE}x${TILEMAP_ROWS * this.SOURCE_TILE_SIZE}`);
+                console.log(`Actual size: ${this.tilemapImage.width}x${this.tilemapImage.height}`);
                 resolve();
             };
             
@@ -61,33 +62,29 @@ class TileRenderer {
     }
     
     createFallbackTiles() {
-        // Create a canvas to generate colored tiles as fallback
+        // Create a canvas to generate all 81 colored tiles as fallback
         const canvas = document.createElement('canvas');
-        const tileCount = 16; // 4x4 grid of tiles
-        canvas.width = this.SOURCE_TILE_SIZE * TILEMAP_WIDTH;
-        canvas.height = this.SOURCE_TILE_SIZE * Math.ceil(tileCount / TILEMAP_WIDTH);
+        canvas.width = this.SOURCE_TILE_SIZE * TILEMAP_COLUMNS;
+        canvas.height = this.SOURCE_TILE_SIZE * TILEMAP_ROWS;
         
         const ctx = canvas.getContext('2d');
         
-        // Generate basic colored tiles for each pattern
-        for (let i = 0; i < tileCount; i++) {
-            const col = i % TILEMAP_WIDTH;
-            const row = Math.floor(i / TILEMAP_WIDTH);
-            const x = col * this.SOURCE_TILE_SIZE;
-            const y = row * this.SOURCE_TILE_SIZE;
+        console.log(`Creating fallback tilemap: ${canvas.width}x${canvas.height} (${TOTAL_TILES} tiles)`);
+        
+        // Generate all 81 tiles
+        for (let i = 0; i < TOTAL_TILES; i++) {
+            const pattern = getPatternByIndex(i);
+            const x = pattern.gridX * this.SOURCE_TILE_SIZE;
+            const y = pattern.gridY * this.SOURCE_TILE_SIZE;
             
-            // Draw a tile based on pattern index
-            const pattern = TILE_PATTERNS[i];
-            if (pattern) {
-                this.drawFallbackTile(ctx, x, y, pattern);
-            }
+            this.drawFallbackTile(ctx, x, y, pattern);
         }
         
         // Convert canvas to image
         this.tilemapImage = new Image();
         this.tilemapImage.src = canvas.toDataURL();
         this.tilemapLoaded = true;
-        console.log('Using fallback colored tiles');
+        console.log(`Generated fallback tilemap with ${TOTAL_TILES} tiles in ${TILEMAP_COLUMNS}x${TILEMAP_ROWS} grid`);
     }
     
     drawFallbackTile(ctx, x, y, pattern) {
@@ -105,31 +102,39 @@ class TileRenderer {
             2: '#2c2c2c'  // Undiggable - dark gray stone
         };
         
-        // Create gradient effect for more visual appeal
+        // Create more sophisticated visual effects for 81-tile system
         const drawQuadrant = (qx, qy, terrainType) => {
             // Base color
             ctx.fillStyle = colors[terrainType];
             ctx.fillRect(qx, qy, half, half);
             
-            // Add subtle texture/pattern
+            // Add subtle texture/pattern based on terrain type
             if (terrainType === 1) {
                 // Add dots for diggable terrain
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                for (let i = 0; i < 3; i++) {
-                    for (let j = 0; j < 3; j++) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                const dotSpacing = half / 4;
+                for (let i = 1; i < 4; i++) {
+                    for (let j = 1; j < 4; j++) {
                         ctx.beginPath();
-                        ctx.arc(qx + 8 + i * 16, qy + 8 + j * 16, 2, 0, Math.PI * 2);
+                        ctx.arc(qx + i * dotSpacing, qy + j * dotSpacing, 1.5, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
             } else if (terrainType === 2) {
-                // Add lines for undiggable terrain
+                // Add subtle stone texture for undiggable terrain
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
-                for (let i = 0; i < 3; i++) {
+                for (let i = 1; i < 4; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(qx, qy + i * 16);
-                    ctx.lineTo(qx + half, qy + i * 16);
+                    ctx.moveTo(qx, qy + i * (half / 4));
+                    ctx.lineTo(qx + half, qy + i * (half / 4));
+                    ctx.stroke();
+                }
+                // Add some vertical lines too
+                for (let i = 1; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(qx + i * (half / 4), qy);
+                    ctx.lineTo(qx + i * (half / 4), qy + half);
                     ctx.stroke();
                 }
             }
@@ -141,14 +146,39 @@ class TileRenderer {
         drawQuadrant(x, y + half, pattern.bl); // Bottom-left
         drawQuadrant(x + half, y + half, pattern.br); // Bottom-right
         
-        // Add subtle grid lines for clarity
+        // Add border between quadrants for clarity
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Vertical center line
+        ctx.moveTo(x + half, y);
+        ctx.lineTo(x + half, y + size);
+        // Horizontal center line
+        ctx.moveTo(x, y + half);
+        ctx.lineTo(x + size, y + half);
+        ctx.stroke();
+        
+        // Add tile border
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.lineWidth = 0.5;
         ctx.strokeRect(x, y, size, size);
+        
+        // Add pattern index for debugging (small text in corner)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(pattern.index.toString(), x + 2, y + 2);
     }
     
     renderTile(ctx, tileIndex, screenX, screenY, gridX = null, gridY = null) {
         if (!this.tilemapImage) return;
+        
+        // Validate tile index
+        if (tileIndex < 0 || tileIndex >= TOTAL_TILES) {
+            console.warn(`Invalid tile index: ${tileIndex}, using 0`);
+            tileIndex = 0;
+        }
         
         // Check if this tile is in the home base area
         const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
@@ -164,11 +194,10 @@ class TileRenderer {
     }
     
     renderNormalTile(ctx, tileIndex, screenX, screenY) {
-        // Calculate source position in tilemap
-        const sourceCol = tileIndex % TILEMAP_WIDTH;
-        const sourceRow = Math.floor(tileIndex / TILEMAP_WIDTH);
-        const sourceX = sourceCol * this.SOURCE_TILE_SIZE;
-        const sourceY = sourceRow * this.SOURCE_TILE_SIZE;
+        // Calculate source position in tilemap using 10x8 grid
+        const pattern = getPatternByIndex(tileIndex);
+        const sourceX = pattern.gridX * this.SOURCE_TILE_SIZE;
+        const sourceY = pattern.gridY * this.SOURCE_TILE_SIZE;
         
         // Draw tile from tilemap to screen
         ctx.drawImage(
@@ -176,6 +205,30 @@ class TileRenderer {
             sourceX, sourceY, this.SOURCE_TILE_SIZE, this.SOURCE_TILE_SIZE,
             screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE
         );
+    }
+    
+    renderEmptyTile(ctx, screenX, screenY, gridX = null, gridY = null) {
+        // Check if this is in the home base area
+        const isHomeBase = this.mapGenerator && gridX !== null && gridY !== null && 
+                           this.mapGenerator.isInHomeBase(gridX, gridY);
+        
+        if (isHomeBase) {
+            // Render home base with light green
+            ctx.fillStyle = this.HOME_BASE_COLOR;
+            ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+            
+            // Add subtle border
+            ctx.strokeStyle = 'rgba(0, 100, 0, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+        } else {
+            // Render completely transparent/empty
+            ctx.clearRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+            
+            // Optional: add very subtle background for debugging
+            ctx.fillStyle = 'rgba(248, 248, 248, 0.1)';
+            ctx.fillRect(screenX, screenY, this.RENDER_TILE_SIZE, this.RENDER_TILE_SIZE);
+        }
     }
     
     renderHomeBaseTile(ctx, tileIndex, screenX, screenY) {

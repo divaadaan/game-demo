@@ -1,4 +1,4 @@
-// Tile Patterns Data
+// Tile Patterns Data - Updated for 80 Tile Support (10x8 layout)
 // Defines the mapping between corner combinations and tilemap indices
 
 const TerrainType = {
@@ -9,86 +9,109 @@ const TerrainType = {
 
 // Constants for tile dimensions
 const TILE_SIZE = 100; // Size of each tile in the source tilemap
-const TILEMAP_WIDTH = 4; // Number of tiles wide in the tilemap
+const TILEMAP_COLUMNS = 10; // 10 columns for 80 tiles
+const TILEMAP_ROWS = 8; // 8 rows for 80 tiles
+const TOTAL_TILES = 80; // 80 tiles (excluding all-empty pattern)
 
-// Pattern matching data
+// Generate all 80 possible patterns programmatically (excluding all-empty)
 // Each pattern represents a corner combination (TL, TR, BL, BR)
-// Index corresponds to position in the tilemap (row * 4 + col)
-const TILE_PATTERNS = [
-    // Row 0 (indices 0-3)
-    { tl: 0, tr: 0, bl: 0, br: 0, index: 0 }, // All empty
-    { tl: 0, tr: 0, bl: 0, br: 1, index: 1 }, // BR diggable
-    { tl: 0, tr: 0, bl: 1, br: 0, index: 2 }, // BL diggable
-    { tl: 0, tr: 0, bl: 1, br: 1, index: 3 }, // Bottom diggable
-    
-    // Row 1 (indices 4-7)
-    { tl: 0, tr: 1, bl: 0, br: 0, index: 4 }, // TR diggable
-    { tl: 0, tr: 1, bl: 0, br: 1, index: 5 }, // Right diggable
-    { tl: 0, tr: 1, bl: 1, br: 0, index: 6 }, // Diagonal TR-BL
-    { tl: 0, tr: 1, bl: 1, br: 1, index: 7 }, // All but TL
-    
-    // Row 2 (indices 8-11)
-    { tl: 1, tr: 0, bl: 0, br: 0, index: 8 }, // TL diggable
-    { tl: 1, tr: 0, bl: 0, br: 1, index: 9 }, // Diagonal TL-BR
-    { tl: 1, tr: 0, bl: 1, br: 0, index: 10 }, // Left diggable
-    { tl: 1, tr: 0, bl: 1, br: 1, index: 11 }, // All but TR
-    
-    // Row 3 (indices 12-15)
-    { tl: 1, tr: 1, bl: 0, br: 0, index: 12 }, // Top diggable
-    { tl: 1, tr: 1, bl: 0, br: 1, index: 13 }, // All but BL
-    { tl: 1, tr: 1, bl: 1, br: 0, index: 14 }, // All but BR
-    { tl: 1, tr: 1, bl: 1, br: 1, index: 15 }, // All diggable
-];
+// Index corresponds to pattern order, skipping (0,0,0,0)
+const TILE_PATTERNS = [];
 
-// Generate pattern lookup map for faster access
-// Key format: "tl,tr,bl,br" -> pattern object
-const PATTERN_LOOKUP = new Map();
-
-// Helper function to generate all possible patterns for all terrain types
-function initializePatternLookup() {
-    // For now, we'll handle basic patterns
-    // This can be expanded to include all 81 combinations (3^4)
+function generateAllPatterns() {
+    let index = 0;
     
-    // Generate patterns for each combination
     for (let tl = 0; tl <= 2; tl++) {
         for (let tr = 0; tr <= 2; tr++) {
             for (let bl = 0; bl <= 2; bl++) {
                 for (let br = 0; br <= 2; br++) {
-                    const key = `${tl},${tr},${bl},${br}`;
-                    
-                    // Map to simplified pattern for now (treating undiggable as diggable visually)
-                    // This is a simplification - you'll need to expand this based on your tilemap
-                    const simplifiedTl = tl === 0 ? 0 : 1;
-                    const simplifiedTr = tr === 0 ? 0 : 1;
-                    const simplifiedBl = bl === 0 ? 0 : 1;
-                    const simplifiedBr = br === 0 ? 0 : 1;
-                    
-                    // Find matching pattern
-                    const pattern = TILE_PATTERNS.find(p => 
-                        p.tl === simplifiedTl && 
-                        p.tr === simplifiedTr && 
-                        p.bl === simplifiedBl && 
-                        p.br === simplifiedBr
-                    );
-                    
-                    if (pattern) {
-                        PATTERN_LOOKUP.set(key, pattern.index);
-                    } else {
-                        // Default to fully empty or fully solid based on majority
-                        const solidCount = (tl > 0 ? 1 : 0) + (tr > 0 ? 1 : 0) + 
-                                         (bl > 0 ? 1 : 0) + (br > 0 ? 1 : 0);
-                        PATTERN_LOOKUP.set(key, solidCount >= 2 ? 15 : 0);
+                    // Skip the all-empty pattern (0,0,0,0)
+                    if (tl === 0 && tr === 0 && bl === 0 && br === 0) {
+                        continue;
                     }
+                    
+                    TILE_PATTERNS.push({
+                        tl: tl,
+                        tr: tr,
+                        bl: bl,
+                        br: br,
+                        index: index,
+                        patternName: `${tl}${tr}${bl}${br}`,
+                        // Calculate grid position for 10x8 layout
+                        gridX: index % TILEMAP_COLUMNS,
+                        gridY: Math.floor(index / TILEMAP_COLUMNS)
+                    });
+                    index++;
                 }
             }
         }
     }
 }
 
+// Generate the complete pattern set
+generateAllPatterns();
+
+// Generate pattern lookup map for O(1) access
+// Key format: "tl,tr,bl,br" -> tile index
+const PATTERN_LOOKUP = new Map();
+
+function initializePatternLookup() {
+    // Create direct mapping - each unique corner combination maps to its tile index
+    for (const pattern of TILE_PATTERNS) {
+        const key = `${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}`;
+        PATTERN_LOOKUP.set(key, pattern.index);
+    }
+    
+    // Special case: map all-empty (0,0,0,0) to a fallback
+    // Since we don't have a dedicated tile for it, we'll handle it specially in the renderer
+    PATTERN_LOOKUP.set('0,0,0,0', -1); // Special value to indicate "render as empty"
+    
+    console.log(`Initialized ${PATTERN_LOOKUP.size} tile patterns (80 tiles + 1 empty fallback)`);
+}
+
 // Initialize the lookup table
 initializePatternLookup();
 
+// Helper function to get pattern by corner values
+function getPatternIndex(tl, tr, bl, br) {
+    const key = `${tl},${tr},${bl},${br}`;
+    const index = PATTERN_LOOKUP.get(key);
+    
+    // Return the index, or -1 for all-empty case
+    return index !== undefined ? index : -1;
+}
+
+// Helper function to get pattern by index
+function getPatternByIndex(index) {
+    // Handle special case for all-empty
+    if (index === -1) {
+        return { tl: 0, tr: 0, bl: 0, br: 0, index: -1, patternName: '0000', gridX: 0, gridY: 0 };
+    }
+    return TILE_PATTERNS[index] || TILE_PATTERNS[0];
+}
+
+// Debug function to list all patterns
+function debugPatterns() {
+    console.log('All 80 tile patterns (excluding all-empty):');
+    for (let i = 0; i < TILE_PATTERNS.length; i++) {
+        const p = TILE_PATTERNS[i];
+        console.log(`${i}: (${p.tl},${p.tr},${p.bl},${p.br}) -> Grid(${p.gridX},${p.gridY})`);
+    }
+    console.log('Special case: (0,0,0,0) -> Empty tile (no dedicated texture)');
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { TerrainType, TILE_SIZE, TILEMAP_WIDTH, PATTERN_LOOKUP };
+    module.exports = { 
+        TerrainType, 
+        TILE_SIZE, 
+        TILEMAP_COLUMNS,
+        TILEMAP_ROWS,
+        TOTAL_TILES,
+        TILE_PATTERNS,
+        PATTERN_LOOKUP,
+        getPatternIndex,
+        getPatternByIndex,
+        debugPatterns
+    };
 }

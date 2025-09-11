@@ -1,4 +1,4 @@
-// Updated Main.js - connects map generator to tile renderer
+// Updated Main.js - connects map generator to tile renderer with 81-tile debug
 // Mining Game Demo with Dual Grid System
 
 class MiningGame {
@@ -67,12 +67,64 @@ class MiningGame {
         // Setup map type controls
         this.setupMapTypeControls();
         
+        // Log tile system info
+        this.logTileSystemInfo();
+        
         // Start game loop
         this.isRunning = true;
         this.lastTime = performance.now();
         this.gameLoop();
         
         console.log('Game initialized successfully!');
+    }
+    
+    logTileSystemInfo() {
+        console.log('=== Tile System Information ===');
+        console.log(`Total tiles supported: ${TOTAL_TILES}`);
+        console.log(`Tilemap layout: ${TILEMAP_COLUMNS}x${TILEMAP_ROWS}`);
+        console.log(`Pattern lookup size: ${PATTERN_LOOKUP.size}`);
+        console.log(`Fallback mode: ${!this.tileRenderer.USE_TILEMAP ? 'ACTIVE' : 'DISABLED'}`);
+        
+        // Test a few pattern lookups
+        console.log('Sample pattern lookups:');
+        console.log(`  All empty (0,0,0,0): tile ${getPatternIndex(0,0,0,0)}`);
+        console.log(`  All diggable (1,1,1,1): tile ${getPatternIndex(1,1,1,1)}`);
+        console.log(`  All undiggable (2,2,2,2): tile ${getPatternIndex(2,2,2,2)}`);
+        console.log(`  Mixed (0,1,2,1): tile ${getPatternIndex(0,1,2,1)}`);
+        
+        // Show current map patterns in use
+        this.analyzeCurrentMapPatterns();
+    }
+    
+    analyzeCurrentMapPatterns() {
+        console.log('=== Current Map Pattern Analysis ===');
+        const usedPatterns = new Set();
+        const patternCounts = new Map();
+        
+        // Analyze all visual tiles in current map
+        for (let y = 0; y < this.mapGenerator.MAP_HEIGHT; y++) {
+            for (let x = 0; x < this.mapGenerator.MAP_WIDTH; x++) {
+                const tileIndex = this.gridSystem.getTileIndex(x, y);
+                usedPatterns.add(tileIndex);
+                patternCounts.set(tileIndex, (patternCounts.get(tileIndex) || 0) + 1);
+            }
+        }
+        
+        console.log(`Unique patterns in use: ${usedPatterns.size}/${TOTAL_TILES + 1} (including empty)`);
+        console.log('Top 10 most used patterns:');
+        
+        const sortedPatterns = Array.from(patternCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+            
+        sortedPatterns.forEach(([index, count]) => {
+            if (index === -1) {
+                console.log(`  Empty tile (0,0,0,0): ${count} times`);
+            } else {
+                const pattern = getPatternByIndex(index);
+                console.log(`  Tile ${index} (${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}): ${count} times`);
+            }
+        });
     }
     
     resizeCanvas() {
@@ -129,13 +181,43 @@ class MiningGame {
             mapTypeLabel.textContent = 'Map Type: ';
             mapTypeLabel.appendChild(mapTypeSelector);
             
+            // Add tile system debug button
+            const debugButton = document.createElement('button');
+            debugButton.textContent = 'Debug Tiles';
+            debugButton.onclick = () => this.debugTileSystem();
+            
             debugInfo.appendChild(mapTypeLabel);
+            debugInfo.appendChild(debugButton);
             
             // Handle map type changes
             mapTypeSelector.addEventListener('change', (e) => {
                 this.changeMapType(e.target.value);
             });
         }
+    }
+    
+    debugTileSystem() {
+        console.log('=== Tile System Debug ===');
+        
+        // Log all 81 patterns
+        if (typeof debugPatterns === 'function') {
+            debugPatterns();
+        }
+        
+        // Re-analyze current map
+        this.analyzeCurrentMapPatterns();
+        
+        // Show tilemap dimensions if loaded
+        if (this.tileRenderer.tilemapImage) {
+            console.log(`Tilemap image: ${this.tileRenderer.tilemapImage.width}x${this.tileRenderer.tilemapImage.height}`);
+            console.log(`Expected: ${TILEMAP_COLUMNS * TILE_SIZE}x${TILEMAP_ROWS * TILE_SIZE}`);
+        }
+        
+        // Test pattern at player position
+        const playerPos = this.player.getPosition();
+        const pattern = this.gridSystem.getVisualTilePattern(playerPos.x, playerPos.y);
+        const tileIndex = this.gridSystem.getTileIndex(playerPos.x, playerPos.y);
+        console.log(`Player position (${playerPos.x},${playerPos.y}): pattern (${pattern.tl},${pattern.tr},${pattern.bl},${pattern.br}) -> tile ${tileIndex}`);
     }
     
     changeMapType(mapType) {
@@ -153,12 +235,16 @@ class MiningGame {
         this.player.setPosition(startPos.x, startPos.y);
         this.inputHandler.updatePlayerPositionDisplay(this.player);
         
+        // Re-analyze patterns for new map
+        this.analyzeCurrentMapPatterns();
+        
         console.log(`Map changed to ${mapType}, player reset to (${startPos.x}, ${startPos.y})`);
     }
     
     handleDig(affectedTiles) {
         // Tiles have been dug, need to update visuals
         if (affectedTiles && affectedTiles.length > 0) {
+            console.log(`Dig affected ${affectedTiles.length} visual tiles`);
             // For now, we'll just re-render everything
             // In a more optimized version, we'd only update affected tiles
             this.render();
@@ -244,7 +330,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Game started successfully!');
         console.log('Controls: Arrow keys to move, Space to dig');
         console.log('Debug: Check "Show Grid" or "Show Base Grid" to visualize the dual-grid system');
+        console.log('Debug: Click "Debug Tiles" button to analyze tile patterns');
         console.log('Map Types: Use the dropdown to switch between different map layouts');
+        console.log('='.repeat(50));
     } catch (error) {
         console.error('Failed to initialize game:', error);
     }
