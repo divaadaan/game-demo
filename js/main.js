@@ -1,4 +1,3 @@
-// Updated Main.js - Refactored grid view controls
 // Mining Game Demo with Dual Grid System
 
 class MiningGame {
@@ -11,9 +10,9 @@ class MiningGame {
         this.isRunning = false;
         this.lastTime = 0;
         
-        // Debug options - refactored
-        this.viewMode = 'draw'; // 'draw' or 'base'
-        this.showGridLines = false;
+        // Debug options
+        this.showGrid = false;
+        this.showBaseGrid = false;
         
         // Game systems
         this.mapGenerator = null;
@@ -58,16 +57,9 @@ class MiningGame {
         const startPos = this.mapGenerator.getPlayerStartPosition();
         this.player = new Player(startPos.x, startPos.y, this.gridSystem);
         
-        // Setup controls
         this.setupControls();
-        
-        // Setup debug controls
         this.setupDebugControls();
-        
-        // Setup map type controls
         this.setupMapTypeControls();
-        
-        // Log tile system info
         this.logTileSystemInfo();
         
         // Start game loop
@@ -141,70 +133,37 @@ class MiningGame {
             (affectedTiles) => this.handleDig(affectedTiles)
         );
         
-        // Update initial position display
         this.inputHandler.updatePlayerPositionDisplay(this.player);
     }
     
     setupDebugControls() {
-        // View mode radio buttons
-        const viewDrawRadio = document.getElementById('viewDraw');
-        const viewBaseRadio = document.getElementById('viewBase');
-        
-        if (viewDrawRadio) {
-            viewDrawRadio.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    this.viewMode = 'draw';
-                    console.log('Switched to Draw Layer view');
-                }
-            });
-        }
-        
-        if (viewBaseRadio) {
-            viewBaseRadio.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    this.viewMode = 'base';
-                    console.log('Switched to Base Layer view');
-                }
-            });
-        }
-        
-        // Grid lines toggle
+        // Grid toggle
         const gridCheckbox = document.getElementById('showGrid');
         if (gridCheckbox) {
             gridCheckbox.addEventListener('change', (e) => {
-                this.showGridLines = e.target.checked;
-                console.log(`Grid lines: ${this.showGridLines ? 'ON' : 'OFF'}`);
+                this.showGrid = e.target.checked;
             });
+        }
+        
+        // Base grid toggle
+        const baseGridCheckbox = document.getElementById('showBaseGrid');
+        if (baseGridCheckbox) {
+            baseGridCheckbox.addEventListener('change', (e) => {
+                this.showBaseGrid = e.target.checked;
+            });
+        }
+        
+        // Debug button
+        const debugButton = document.getElementById('debugTilesBtn');
+        if (debugButton) {
+            debugButton.addEventListener('click', () => this.debugTileSystem());
         }
     }
     
     setupMapTypeControls() {
-        // Add map type selector to debug area
-        const debugInfo = document.querySelector('.debug-info');
-        if (debugInfo) {
-            const mapTypeSelector = document.createElement('select');
-            mapTypeSelector.id = 'mapTypeSelector';
-            mapTypeSelector.innerHTML = `
-                <option value="bellJar">Bell Jar</option>
-                <option value="simpleBox">Simple Box</option>
-                <option value="openField">Open Field</option>
-                <option value="maze">Maze</option>
-                <option value="cavern">Cavern</option>
-            `;
-            
-            const mapTypeLabel = document.createElement('label');
-            mapTypeLabel.textContent = 'Map Type: ';
-            mapTypeLabel.appendChild(mapTypeSelector);
-            
-            // Add tile system debug button
-            const debugButton = document.createElement('button');
-            debugButton.textContent = 'Debug Tiles';
-            debugButton.onclick = () => this.debugTileSystem();
-            
-            debugInfo.appendChild(mapTypeLabel);
-            debugInfo.appendChild(debugButton);
-            
-            // Handle map type changes
+        // Map type selector
+        const mapTypeSelector = document.getElementById('mapTypeSelector');
+        if (mapTypeSelector) {
             mapTypeSelector.addEventListener('change', (e) => {
                 this.changeMapType(e.target.value);
             });
@@ -214,7 +173,7 @@ class MiningGame {
     debugTileSystem() {
         console.log('=== Tile System Debug ===');
         
-        // Log all 80 patterns
+        // Log all 81 patterns
         if (typeof debugPatterns === 'function') {
             debugPatterns();
         }
@@ -237,10 +196,6 @@ class MiningGame {
         // Check if player is in home base
         const inHomeBase = this.gridSystem.isVisualTileInHomeBase(playerPos.x, playerPos.y);
         console.log(`Player in home base: ${inHomeBase}`);
-        
-        // Show current view mode
-        console.log(`Current view mode: ${this.viewMode}`);
-        console.log(`Grid lines: ${this.showGridLines ? 'ON' : 'OFF'}`);
     }
     
     changeMapType(mapType) {
@@ -301,13 +256,13 @@ class MiningGame {
         this.ctx.fillStyle = '#f8f8f8';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Render dual grid system with refactored parameters
+        // Render dual grid system
         this.gridSystem.render(
             this.ctx, 
             this.CANVAS_PADDING, 
             this.CANVAS_PADDING,
-            this.viewMode,
-            this.showGridLines
+            this.showGrid,
+            this.showBaseGrid
         );
         
         // Render player on top
@@ -352,8 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         console.log('Game started successfully!');
         console.log('Controls: Arrow keys to move, Space to dig');
-        console.log('View Controls: Toggle between Draw Layer and Base Layer views');
-        console.log('Debug: Check "Show Grid Lines" to see the grid structure');
+        console.log('Debug: Check "Show Grid" or "Show Base Grid" to visualize the dual-grid system');
         console.log('Debug: Click "Debug Tiles" button to analyze tile patterns');
         console.log('Map Types: Use the dropdown to switch between different map layouts');
         console.log('='.repeat(50));

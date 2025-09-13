@@ -42,6 +42,7 @@ h1 {
     gap: 30px;
     color: #666;
     font-size: 14px;
+    margin-bottom: 15px;
 }
 
 .controls-info span {
@@ -50,42 +51,80 @@ h1 {
     border-radius: 20px;
 }
 
+/* New game controls styling */
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #666;
+    font-size: 14px;
+}
+
+.control-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.control-group input[type="checkbox"] {
+    cursor: pointer;
+}
+
+#mapTypeSelector {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#debugTilesBtn {
+    padding: 4px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f0f0f0;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+#debugTilesBtn:hover {
+    background: #e0e0e0;
+}
+
+#debugTilesBtn:active {
+    background: #d0d0d0;
+}
+
 #gameCanvas {
     display: block;
     margin: 0 auto;
     border: 2px solid #ddd;
     background: #f8f8f8;
     cursor: crosshair;
-    pointer-events: auto;
-    position: relative;
-    z-index: 1;
 }
 
-.debug-info {
+/* Bottom status info - simplified */
+.status-info {
     margin-top: 15px;
     display: flex;
     justify-content: center;
-    gap: 20px;
     align-items: center;
     color: #666;
     font-size: 14px;
-    position: relative;
-    z-index: 10;
-    pointer-events: auto;
-}
-
-.debug-info label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.debug-info input[type="checkbox"] {
-    cursor: pointer;
-    min-width: 16px;
-    min-height: 16px;
 }
 
 #playerPos {
@@ -93,4 +132,20 @@ h1 {
     padding: 4px 12px;
     border-radius: 12px;
     font-family: monospace;
+}
+
+@media (max-width: 600px) {
+    .game-controls {
+        padding: 10px;
+    }
+    
+    .control-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .controls-info {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
