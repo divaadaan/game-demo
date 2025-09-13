@@ -331,9 +331,7 @@ class MiningGame {
         );
         
         // Render player on top
-        this.player.render(this.ctx, this.CANVAS_PADDING, this.CANVAS_PADDING);
-        
-        // Render UI overlay
+        this.player.render(this.ctx, this.CANVAS_PADDING, this.CANVAS_PADDING, this.viewMode);        // Render UI overlay
         this.renderUI();
     }
     

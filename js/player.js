@@ -87,16 +87,22 @@ class Player {
     }
     
     // Render the player
-    render(ctx, offsetX = 0, offsetY = 0) {
+    render(ctx, offsetX = 0, offsetY = 0, viewMode = 'draw') {
         const tileSize = this.gridSystem.tileRenderer.RENDER_TILE_SIZE;
         
-        // The drawing layer is visually offset from the base grid.
-        // We use this offset to correctly position the player in the center of a visual tile.
-        const visualOffsetPixels = this.gridSystem.VISUAL_OFFSET * tileSize;
+        let screenX, baseScreenY;
         
-        // Calculate the player's base screen position on the offset grid
-        const screenX = this.x * tileSize + visualOffsetPixels + offsetX;
-        const baseScreenY = this.y * tileSize + visualOffsetPixels + offsetY;
+        if (viewMode === 'draw') {
+            // For draw layer: Visual tiles are conceptually offset by (0.5, 0.5) from base grid
+            // but rendered at the same pixel positions as base tiles would be.
+            const visualOffset = -0.5 * tileSize;
+            screenX = this.x * tileSize + (tileSize / 2) + visualOffset + offsetX;
+            baseScreenY = this.y * tileSize + (tileSize / 2) + visualOffset + offsetY;
+        } else {
+            // For base layer: player should appear at center of base grid tile
+            screenX = this.x * tileSize + (tileSize / 2) + offsetX;
+            baseScreenY = this.y * tileSize + (tileSize / 2) + offsetY;
+        }
         
         // Apply the animation offset for the player's bobbing motion
         const screenY = baseScreenY + this.animationOffset;
@@ -123,7 +129,7 @@ class Player {
         this.renderDirectionIndicator(ctx, screenX, screenY);
         
         // Draw dig preview (highlight tile that would be dug)
-        this.renderDigPreview(ctx, offsetX, offsetY);
+        this.renderDigPreview(ctx, offsetX, offsetY, viewMode);
     }
     
     renderDirectionIndicator(ctx, centerX, centerY) {
@@ -160,15 +166,26 @@ class Player {
         ctx.fill();
     }
     
-    renderDigPreview(ctx, offsetX, offsetY) {
+    renderDigPreview(ctx, offsetX, offsetY, viewMode = 'draw') {
         const digX = this.x + this.direction.x;
         const digY = this.y + this.direction.y;
         
         // Check if target tile is diggable
         if (this.gridSystem.getTerrainAt(digX, digY) === TerrainType.DIGGABLE) {
             const tileSize = this.gridSystem.tileRenderer.RENDER_TILE_SIZE;
-            const screenX = digX * tileSize + offsetX;
-            const screenY = digY * tileSize + offsetY;
+            
+            let screenX, screenY;
+            
+            if (viewMode === 'draw') {
+                // Apply the same -0.5 tile offset as the player for draw layer
+                const visualOffset = -0.5 * tileSize;
+                screenX = digX * tileSize + visualOffset + offsetX;
+                screenY = digY * tileSize + visualOffset + offsetY;
+            } else {
+                // For base layer: highlight at base grid position
+                screenX = digX * tileSize + offsetX;
+                screenY = digY * tileSize + offsetY;
+            }
             
             // Draw highlight
             ctx.strokeStyle = '#ffcc00';
