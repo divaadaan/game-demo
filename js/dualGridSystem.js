@@ -134,7 +134,7 @@ class DualGridSystem {
         this.tileRenderer.renderBaseGridDebug(ctx, this.baseGrid, offsetX, offsetY, this.mapGenerator);
     }
     
-    // Main render method - refactored to use view modes
+    // Main render method
     render(ctx, offsetX = 0, offsetY = 0, viewMode = 'draw', showGridLines = false) {
         // Clear canvas area
         const canvasWidth = this.width * this.tileRenderer.RENDER_TILE_SIZE;
@@ -145,11 +145,9 @@ class DualGridSystem {
         if (viewMode === 'base') {
             this.renderBaseLayer(ctx, offsetX, offsetY);
         } else {
-            // Default to draw layer
             this.renderDrawLayer(ctx, offsetX, offsetY);
         }
         
-        // Render grid lines if enabled
         if (showGridLines) {
             this.tileRenderer.renderGridLines(ctx, this.width, this.height, offsetX, offsetY);
         }

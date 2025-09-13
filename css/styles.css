@@ -76,10 +76,31 @@ h1 {
     align-items: center;
     gap: 5px;
     cursor: pointer;
+    user-select: none;
 }
 
+.control-group input[type="radio"],
 .control-group input[type="checkbox"] {
     cursor: pointer;
+}
+
+.control-group input[type="radio"] {
+    margin-right: 4px;
+}
+
+.control-group label:has(input[type="radio"]) {
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.control-group label:has(input[type="radio"]:checked) {
+    background-color: #e0e0e0;
+    font-weight: 500;
+}
+
+.control-group label:has(input[type="radio"]):hover {
+    background-color: #f0f0f0;
 }
 
 #mapTypeSelector {
