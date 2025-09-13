@@ -90,14 +90,21 @@ class Player {
     render(ctx, offsetX = 0, offsetY = 0) {
         const tileSize = this.gridSystem.tileRenderer.RENDER_TILE_SIZE;
         
-        // Calculate screen position (center of tile)
-        const screenX = this.x * tileSize + tileSize / 2 + offsetX;
-        const screenY = this.y * tileSize + tileSize / 2 + offsetY + this.animationOffset;
+        // The drawing layer is visually offset from the base grid.
+        // We use this offset to correctly position the player in the center of a visual tile.
+        const visualOffsetPixels = this.gridSystem.VISUAL_OFFSET * tileSize;
         
-        // Draw shadow
+        // Calculate the player's base screen position on the offset grid
+        const screenX = this.x * tileSize + visualOffsetPixels + offsetX;
+        const baseScreenY = this.y * tileSize + visualOffsetPixels + offsetY;
+        
+        // Apply the animation offset for the player's bobbing motion
+        const screenY = baseScreenY + this.animationOffset;
+        
+        // Draw shadow (at the base position, not affected by animation)
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.beginPath();
-        ctx.ellipse(screenX, this.y * tileSize + tileSize / 2 + offsetY + 4, 
+        ctx.ellipse(screenX, baseScreenY + 4, 
                    this.PLAYER_RADIUS * 0.8, this.PLAYER_RADIUS * 0.4, 
                    0, 0, Math.PI * 2);
         ctx.fill();
