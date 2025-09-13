@@ -7,7 +7,7 @@ class TileRenderer {
         this.tilemapLoaded = false;
         
         // Control whether to use tilemap or fallback
-        this.USE_TILEMAP = false; // Set to true to attempt loading tilemap.png
+        this.USE_TILEMAP = true; // Set to true to attempt loading tilemap.png
         
         // Rendering constants
         this.RENDER_TILE_SIZE = 32; // Size to render tiles on screen

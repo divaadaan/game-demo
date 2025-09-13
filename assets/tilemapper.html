@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Game Tilemap Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .download-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .download-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
+        .style-btn {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .style-btn:hover {
+            background: #1976D2;
+        }
+        
+        .canvas-container {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            overflow-x: auto;
+        }
+        
+        canvas {
+            border: 2px solid #ddd;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .info h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .style-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Mining Game Tilemap Generator</h1>
+        <p class="description">
+            This tool generates an 80-tile tilemap (10×8 grid) for the dual-grid tile system. 
+            Each tile represents a unique combination of corner terrain types, excluding the all-empty (0,0,0,0) pattern.
+            The tilemap is 1000×800 pixels total, with each tile being 100×100 pixels.
+        </p>
+        
+        <div class="controls">
+            <button class="download-btn" onclick="downloadTilemap()">
+                📥 Download tilemap.png
+            </button>
+            
+            <div class="style-selector">
+                <label>Style:</label>
+                <select id="styleSelect" onchange="changeStyle()">
+                    <option value="classic">Classic (Simple)</option>
+                    <option value="detailed">Detailed (Textured)</option>
+                    <option value="smooth">Smooth (Blended)</option>
+                </select>
+            </div>
+            
+            <button class="style-btn" onclick="regenerate()">
+                🔄 Regenerate
+            </button>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="tilemapCanvas" width="1000" height="800"></canvas>
+        </div>
+        
+        <div class="info">
+            <h3>📊 Tilemap Information</h3>
+            <p><strong>Dimensions:</strong> 1000×800 pixels (10 columns × 8 rows)</p>
+            <p><strong>Tile Size:</strong> 100×100 pixels each</p>
+            <p><strong>Total Tiles:</strong> 80 unique patterns</p>
+            <p><strong>Pattern Format:</strong> Each tile shows 4 quadrants (TL, TR, BL, BR)</p>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="color-box" style="background: #e8f4f8;"></div>
+                    <span>Empty (0)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #8b7355;"></div>
+                    <span>Diggable (1)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #2c2c2c;"></div>
+                    <span>Undiggable (2)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Terrain type constants
+        const TerrainType = {
+            EMPTY: 0,
+            DIGGABLE: 1,
+            UNDIGGABLE: 2
+        };
+        
+        // Color schemes
+        const colorSchemes = {
+            classic: {
+                0: '#e8f4f8', // Empty - light blue-white
+                1: '#8b7355', // Diggable - brown earth
+                2: '#2c2c2c'  // Undiggable - dark gray stone
+            },
+            detailed: {
+                0: '#f0f8ff', // Empty - alice blue
+                1: '#a0826d', // Diggable - tan
+                2: '#1a1a1a'  // Undiggable - near black
+            },
+            smooth: {
+                0: '#e6f3ff', // Empty - light sky
+                1: '#967259', // Diggable - darker earth
+                2: '#333333'  // Undiggable - charcoal
+            }
+        };
+        
+        let currentStyle = 'classic';
+        
+        // Generate all 80 patterns (excluding 0,0,0,0)
+        function generatePatterns() {
+            const patterns = [];
+            let index = 0;
+            
+            for (let tl = 0; tl <= 2; tl++) {
+                for (let tr = 0; tr <= 2; tr++) {
+                    for (let bl = 0; bl <= 2; bl++) {
+                        for (let br = 0; br <= 2; br++) {
+                            // Skip all-empty pattern
+                            if (tl === 0 && tr === 0 && bl === 0 && br === 0) {
+                                continue;
+                            }
+                            
+                            patterns.push({
+                                tl: tl,
+                                tr: tr,
+                                bl: bl,
+                                br: br,
+                                index: index,
+                                gridX: index % 10,
+                                gridY: Math.floor(index / 10)
+                            });
+                            index++;
+                        }
+                    }
+                }
+            }
+            
+            return patterns;
+        }
+        
+        // Draw a single tile
+        function drawTile(ctx, x, y, pattern) {
+            const size = 100;
+            const half = size / 2;
+            const colors = colorSchemes[currentStyle];
+            
+            // Clear tile area
+            ctx.fillStyle = '#f8f8f8';
+            ctx.fillRect(x, y, size, size);
+            
+            // Function to draw a quadrant with texture
+            const drawQuadrant = (qx, qy, terrainType) => {
+                // Base color
+                ctx.fillStyle = colors[terrainType];
+                ctx.fillRect(qx, qy, half, half);
+                
+                // Add texture based on style
+                if (currentStyle === 'detailed' || currentStyle === 'smooth') {
+                    if (terrainType === 1) {
+                        // Diggable - add dirt texture
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                        for (let i = 0; i < 5; i++) {
+                            for (let j = 0; j < 5; j++) {
+                                if (Math.random() > 0.6) {
+                                    ctx.beginPath();
+                                    ctx.arc(
+                                        qx + (i + 0.5) * (half / 5),
+                                        qy + (j + 0.5) * (half / 5),
+                                        1.5, 0, Math.PI * 2
+                                    );
+                                    ctx.fill();
+                                }
+                            }
+                        }
+                    } else if (terrainType === 2) {
+                        // Undiggable - add stone texture
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                        ctx.lineWidth = 1;
+                        
+                        // Horizontal lines
+                        for (let i = 1; i < 5; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(qx, qy + i * (half / 5));
+                            ctx.lineTo(qx + half, qy + i * (half / 5));
+                            ctx.stroke();
+                        }
+                        
+                        // Vertical lines
+                        for (let i = 1; i < 5; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(qx + i * (half / 5), qy);
+                            ctx.lineTo(qx + i * (half / 5), qy + half);
+                            ctx.stroke();
+                        }
+                        
+                        // Add some cracks
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 0.5;
+                        if (Math.random() > 0.7) {
+                            ctx.beginPath();
+                            ctx.moveTo(qx + Math.random() * half, qy);
+                            ctx.lineTo(qx + Math.random() * half, qy + half);
+                            ctx.stroke();
+                        }
+                    } else if (terrainType === 0) {
+                        // Empty - add subtle gradient
+                        if (currentStyle === 'smooth') {
+                            const gradient = ctx.createRadialGradient(
+                                qx + half/2, qy + half/2, 0,
+                                qx + half/2, qy + half/2, half
+                            );
+                            gradient.addColorStop(0, colors[0]);
+                            gradient.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(qx, qy, half, half);
+                        }
+                    }
+                }
+            };
+            
+            // Draw each quadrant
+            drawQuadrant(x, y, pattern.tl);           // Top-left
+            drawQuadrant(x + half, y, pattern.tr);    // Top-right
+            drawQuadrant(x, y + half, pattern.bl);    // Bottom-left
+            drawQuadrant(x + half, y + half, pattern.br); // Bottom-right
+            
+            // Add quadrant dividers
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            
+            ctx.beginPath();
+            ctx.moveTo(x + half, y);
+            ctx.lineTo(x + half, y + size);
+            ctx.moveTo(x, y + half);
+            ctx.lineTo(x + size, y + half);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            // Add tile border
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, size, size);
+            
+            // Add pattern index label (small, semi-transparent)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`${pattern.index}`, x + 3, y + 3);
+            
+            // Add pattern code in bottom right
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.font = '8px monospace';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillText(`${pattern.tl}${pattern.tr}${pattern.bl}${pattern.br}`, x + size - 3, y + size - 3);
+        }
+        
+        // Generate the complete tilemap
+        function generateTilemap() {
+            const canvas = document.getElementById('tilemapCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Generate and draw all patterns
+            const patterns = generatePatterns();
+            
+            patterns.forEach(pattern => {
+                const x = pattern.gridX * 100;
+                const y = pattern.gridY * 100;
+                drawTile(ctx, x, y, pattern);
+            });
+            
+            console.log(`Generated ${patterns.length} tile patterns in ${currentStyle} style`);
+        }
+        
+        // Download the tilemap as PNG
+        function downloadTilemap() {
+            const canvas = document.getElementById('tilemapCanvas');
+            const link = document.createElement('a');
+            link.download = 'tilemap.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Change rendering style
+        function changeStyle() {
+            const select = document.getElementById('styleSelect');
+            currentStyle = select.value;
+            generateTilemap();
+        }
+        
+        // Regenerate with current style
+        function regenerate() {
+            generateTilemap();
+        }
+        
+        // Generate tilemap on load
+        window.onload = function() {
+            generateTilemap();
+        };
+    </script>
+</body>
+</html>
