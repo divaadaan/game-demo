@@ -138,6 +138,10 @@ h1 {
     cursor: crosshair;
 }
 
+#gameCanvas.alt-editing {
+    cursor: cell !important;
+}
+
 /* Bottom status info - simplified */
 .status-info {
     margin-top: 15px;

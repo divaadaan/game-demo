@@ -23,6 +23,9 @@ class MiningGame {
         
         // Canvas settings
         this.CANVAS_PADDING = 20;
+        
+        // Track Alt key state for cursor
+        this.altKeyPressed = false;
     }
     
     async initialize() {
@@ -60,6 +63,7 @@ class MiningGame {
         this.setupControls();
         this.setupDebugControls();
         this.setupMapTypeControls();
+        this.setupAltKeyTracking();
         this.logTileSystemInfo();
         
         // Start game loop
@@ -125,12 +129,43 @@ class MiningGame {
         this.canvas.height = this.mapGenerator.MAP_HEIGHT * tileSize + this.CANVAS_PADDING * 2;
     }
     
+    setupAltKeyTracking() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Alt' && !this.altKeyPressed) {
+                this.altKeyPressed = true;
+                this.canvas.classList.add('alt-editing');
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Alt' && this.altKeyPressed) {
+                this.altKeyPressed = false;
+                this.canvas.classList.remove('alt-editing');
+            }
+        });
+        
+        // Remove alt-editing class when window loses focus
+        window.addEventListener('blur', () => {
+            this.altKeyPressed = false;
+            this.canvas.classList.remove('alt-editing');
+        });
+    }
+    
     setupControls() {
         // Setup player controls with dig callback
         this.inputHandler.setupPlayerControls(
             this.player,
             this.gridSystem,
             (affectedTiles) => this.handleDig(affectedTiles)
+        );
+        
+        // Setup tile editing controls with Alt-Click
+        this.inputHandler.setupTileEditingControls(
+            this.canvas,
+            this.gridSystem,
+            this.player,
+            this.mapGenerator,
+            (x, y, newType, affectedTiles) => this.handleTileEdit(x, y, newType, affectedTiles)
         );
         
         this.inputHandler.updatePlayerPositionDisplay(this.player);
@@ -211,7 +246,7 @@ class MiningGame {
         // Check if player is in home base
         const inHomeBase = this.gridSystem.isVisualTileInHomeBase(playerPos.x, playerPos.y);
         console.log(`Player in home base: ${inHomeBase}`);
-        
+
         console.log(`Current view mode: ${this.viewMode}`);
         console.log(`Grid lines: ${this.showGridLines ? 'ON' : 'OFF'}`);
     }
@@ -245,6 +280,18 @@ class MiningGame {
             // In a more optimized version, we'd only update affected tiles
             this.render();
         }
+    }
+
+    handleTileEdit(x, y, newType, affectedTiles) {
+        // Log the edit
+        const typeNames = ['Empty', 'Diggable', 'Undiggable'];
+        console.log(`Tile edited at (${x}, ${y}) to ${typeNames[newType]}`);
+        
+        // Force re-render to show changes
+        this.render();
+        
+        // Only update affected tiles for better performance
+        this.gridSystem.updateVisualTiles(this.ctx, affectedTiles, this.CANVAS_PADDING, this.CANVAS_PADDING);
     }
     
     gameLoop(currentTime = 0) {
